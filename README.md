@@ -1,3 +1,8 @@
+<p align="center">
+    <img src="assets/Bell logo + wordmark" width="199" height="71">
+</p>
+
+
 # The Bell programming language
 Bell is personal project of mine, to create a simpler way to create datapacks in Minecraft. The standard system is called MCfunction (by Mojang, creators of Minecraft) comes alongside your Minecraft game, but it is verbose, complicated, and cannot be reasoned with simply.
 
