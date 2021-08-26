@@ -1,6 +1,6 @@
-use front_end::{lexer, parser};
+use front_end::{lexer, parser, type_checker};
 
-use crate::core::{alias, error};
+use crate::core::error;
 
 pub mod core;
 mod front_end;
@@ -8,19 +8,26 @@ mod front_end;
 // The result of each compilation level
 #[derive(Debug)]
 pub enum CompileResult {
-    LexResult(Vec<alias::SpanToken>),
+    LexResult(Vec<lexer::SpanToken>),
     ParseResult(parser::Program),
-    AnalysisResult(parser::Program),
+    CheckResult(parser::Program),
 }
 
 // Compile a file up to some step
 pub fn compile<'a>(filename: &'a str, text: &'a str, level: i32) -> Result<CompileResult, error::Error<'a>> {
+    let tokens = lexer::tokenize(filename, text)?;
+
     // Fall-through sadly isn't possible without some extra work
-    match level {
-        1 => Ok(CompileResult::LexResult(lexer::tokenize(filename, text)?)),
-        2 => Ok(CompileResult::ParseResult(parser::parse(filename, text, lexer::tokenize(filename, text)?)?)),
-        3 => Ok(CompileResult::ParseResult(parser::parse(filename, text, lexer::tokenize(filename, text)?)?)),
-        _ => panic!("Out of bounds compilation level.")
+    if level > 1 {
+        let program = parser::parse(filename, text, tokens)?;
+
+        if level > 2 {
+            Ok(CompileResult::CheckResult(type_checker::check(filename, text, program)?))
+        } else {
+            Ok(CompileResult::ParseResult(program))
+        }
+    } else {
+        Ok(CompileResult::LexResult(tokens))
     }
 }
 
@@ -90,6 +97,15 @@ mod tests {
 
         fn main() {
             println(is_prime(100));
+        }
+        ", 2);
+    }
+
+    #[test]
+    fn check_no_panic() {
+        crate::compile_text(r"
+        fn main() {
+            var x = 2;
         }
         ", 2);
     }

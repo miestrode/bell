@@ -1,8 +1,9 @@
-use std::{fs, io, process, time};
+use std::{fs, io, process, time, ops};
 
 use lang::core::error;
 
-static VERSION: &str = "0.2.0";
+const VERSION: &str = "0.3.1";
+const LEVELS: ops::RangeInclusive<i32> = 1..=3;
 
 // A simple trait, used only for displaying errors
 trait Report {
@@ -42,10 +43,24 @@ impl Report for error::Error<'_> {
                     .eprint((filename, ariadne::Source::from(text))),
             error::Error::Expected { filename, text, range, expected, found } =>
                 ariadne::Report::build(ariadne::ReportKind::Error, filename, range.start)
-                    .with_message(format!("expected {}, found {}.", ariadne::Color::Blue.paint(display_as_choice(expected)), ariadne::Color::Blue.paint(found)))
+                    .with_message(format!("expected {}, found {}.",
+                                          ariadne::Color::Blue.paint(display_as_choice(expected)),
+                                          ariadne::Color::Blue.paint(found)))
                     .with_code(3)
                     .with_label(ariadne::Label::new((filename, range))
                         .with_message("Here.")
+                        .with_color(ariadne::Color::Red))
+                    .finish()
+                    .eprint((filename, ariadne::Source::from(text))),
+            error::Error::DuplicateParameter { filename, text, existing, found, name } =>
+                ariadne::Report::build(ariadne::ReportKind::Error, filename, found.start)
+                    .with_message(format!("Duplicate parameter: {}", ariadne::Color::Blue.paint(format!("`{}`", name))))
+                    .with_code(3)
+                    .with_label(ariadne::Label::new((filename, existing))
+                        .with_message(format!("You first declared {} here.", format!("`{}`", name)))
+                        .with_color(ariadne::Color::Yellow))
+                    .with_label(ariadne::Label::new((filename, found))
+                        .with_message("But then you declared another parameter with the same name here.")
                         .with_color(ariadne::Color::Red))
                     .finish()
                     .eprint((filename, ariadne::Source::from(text)))
@@ -54,10 +69,10 @@ impl Report for error::Error<'_> {
 }
 
 fn main() {
-    let matches = clap::App::new("The Bell compiler CLI")
+    let matches = clap::App::new("The Flagship Bell Compiler CLI")
         .version(VERSION)
         .author("Yoav G. <miestrode@gmail.com>")
-        .about("Compile Bell files into MCfunction.")
+        .about("Compiles Bell files into data packs (written in MCfunction).")
         .arg(clap::Arg::with_name("file")
             .visible_aliases(&["source", "filename", "compile", "build"])
             .short("f")
@@ -65,7 +80,7 @@ fn main() {
             .value_name("FILE")
             .takes_value(true)
             .required(true)
-            .help("The file to compile to MCfunction."))
+            .help("The file to compile to create a data pack from."))
         .arg(clap::Arg::with_name("level")
             .visible_aliases(&["stage", "up_to"])
             .short("l")
@@ -74,13 +89,16 @@ fn main() {
             .takes_value(true)
             .required(false)
             .default_value("3")
-            .help("The file to compile to MCfunction."))
+            .help("The level of compilation. Compilation levels in ascending order are: lexing, parsing and type checking."))
         .get_matches();
 
     // Unwrap can be used, since Clap makes sure all the values are specified
     let file = matches
         .value_of("file")
         .unwrap();
+
+    // Get the compilation level. Mainly used for debugging, since sometimes you want to test out a particular part of the compiler.
+    // Previous compilation steps however are mandatory. You cannot parse without tokenizing first
     let level = matches
         .value_of("level")
         .unwrap()
@@ -91,15 +109,18 @@ fn main() {
             process::exit(exitcode::DATAERR);
         });
 
-    if !(1..=3).contains(&level) {
-        eprintln!("{} Compilation level needs to be between 1 to 3.", ariadne::Color::Red.paint("Error:"));
+    if !(LEVELS).contains(&level) {
+        eprintln!("{} Compilation level needs to be between {} to {}.",
+                  ariadne::Color::Red.paint("Error:"),
+                  ariadne::Color::Blue.paint(LEVELS.start()),
+                  ariadne::Color::Blue.paint(LEVELS.end()));
 
         process::exit(exitcode::DATAERR);
     }
 
     // Fetch the file the user wants to compile
     let text = fs::read_to_string(&file).unwrap_or_else(|_| {
-        eprintln!("{} Could not locate file: `{}`.", ariadne::Color::Red.paint("Error:"), ariadne::Color::Blue.paint(file));
+        eprintln!("{} Could not locate file: `{}`.", ariadne::Color::Red.paint("Error:"), ariadne::Color::Blue.paint(format!("`{}`", file)));
 
         process::exit(exitcode::DATAERR);
     });
@@ -111,7 +132,7 @@ fn main() {
         1 => "lexing",
         2 => "parsing",
         3 => "analysing",
-        _ => panic!("Level is invalid, but should have already been checked")
+        _ => panic!("Level is invalid, but should have already been checked") // Internal error
     }, ariadne::Color::Blue.paint(&file), now.elapsed().as_secs_f32());
 
     process::exit(match result {
@@ -125,7 +146,7 @@ fn main() {
 
             exitcode::OK
         }
-        Ok(value @ lang::CompileResult::AnalysisResult(_)) => {
+        Ok(value @ lang::CompileResult::CheckResult(_)) => {
             println!("{:#?}", value);
 
             exitcode::OK

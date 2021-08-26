@@ -1,13 +1,16 @@
+use std::{ops, hash};
+
 use logos::Logos;
 
-use crate::core::{alias, error};
+use crate::core::error;
+use std::hash::Hasher;
 
-#[derive(Logos, Debug, Clone, PartialEq)]
+#[derive(Logos, Debug, Clone, Eq, PartialEq, Hash)]
 pub enum Token {
     #[token("fn")]
-    Function,
-    #[token("let")]
-    Variable,
+    Fn,
+    #[token("var")]
+    Var,
     #[token("while")]
     While,
     #[token("if")]
@@ -102,15 +105,42 @@ fn skip_block_comment(lexer: &mut logos::Lexer<Token>) -> logos::Filter<()> {
     logos::Filter::Emit(())
 }
 
-pub fn tokenize<'a>(filename: &'a str, text: &'a str) -> Result<Vec<alias::SpanToken>, error::Error<'a>> {
-    let tokens: Vec<alias::SpanToken> = Token::lexer(text)
+#[derive(Debug, Clone, Eq)]
+pub struct SpanToken(pub Token, pub ops::Range<usize>);
+
+// In other parts of the codebase, span tokens are compared (Mainly in the type checker).
+// It isn't worth the hassle to extract the actual token values every time, so this was introduced.
+impl PartialEq<Self> for SpanToken {
+    fn eq(&self, other: &Self) -> bool {
+        self.0 == other.0
+    }
+}
+
+// Just like the PartialEq implementation, we don't care about the SpanTokens span
+impl hash::Hash for SpanToken {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.0.hash(state);
+    }
+}
+
+pub fn tokenize<'a>(filename: &'a str, text: &'a str) -> Result<Vec<SpanToken>, error::Error<'a>> {
+    let tokens: Vec<SpanToken> = Token::lexer(text)
         .spanned()
+        .map(|(token, span)| SpanToken(token, span))
         .collect();
 
-    for (token, range) in &tokens {
+    // Create the error enums from the error tokens Logos generated
+    for SpanToken(token, span) in &tokens {
         match token {
-            Token::InvalidCharacter => return Err(error::Error::InvalidCharacter { filename, text, range: range.clone(), character: text[range.clone()].parse().unwrap() }),
-            Token::UnterminatedBlockComment => return Err(error::Error::UnterminatedBlockComment { filename, text, range: range.to_owned() }),
+            Token::InvalidCharacter => return Err(error::Error::InvalidCharacter {
+                filename,
+                text,
+                range: span.clone(),
+                character: text[span.clone()]
+                    .parse()
+                    .unwrap(),
+            }),
+            Token::UnterminatedBlockComment => return Err(error::Error::UnterminatedBlockComment { filename, text, range: span.to_owned() }),
             _ => continue
         };
     };

@@ -1,3 +1,3 @@
 pub mod lexer;
 pub mod parser;
-mod analyser;
+pub mod type_checker;

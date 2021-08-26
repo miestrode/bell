@@ -1,18 +1,17 @@
-use core::ops;
+use std::ops;
 
-use crate::core::{alias, error};
-use crate::front_end::lexer::Token;
+use crate::core::error;
 
 use super::lexer;
 
 #[derive(Debug)]
-enum Expression {
-    Int(alias::SpanToken),
-    Bool(alias::SpanToken),
-    Id(alias::SpanToken),
+pub enum Expression {
+    Int(lexer::SpanToken),
+    Bool(lexer::SpanToken),
+    Id(lexer::SpanToken),
     Block(Box<Block>),
     Assign(Box<Assign>),
-    Variable(Box<Variable>),
+    Declaration(Box<Declaration>),
     While(Box<While>),
     Conditional(Box<Conditional>),
     Function(Box<Function>),
@@ -20,63 +19,62 @@ enum Expression {
 }
 
 #[derive(Debug)]
-struct Assign {
-    id: alias::SpanToken,
-    value: Expression,
+pub struct Assign {
+    pub id: lexer::SpanToken,
+    pub value: Expression,
 }
 
 #[derive(Debug)]
-struct Variable {
-    id: alias::SpanToken,
-    hint: Option<alias::SpanToken>,
-    value: Expression,
+pub struct Declaration {
+    pub id: lexer::SpanToken,
+    pub hint: Option<lexer::SpanToken>,
+    pub value: Expression,
 }
 
 #[derive(Debug)]
-struct Block {
-    expressions: Vec<Expression>,
-    tail: Option<Expression>,
+pub struct Block {
+    pub expressions: Vec<Expression>,
+    pub tail: Option<Expression>,
 }
 
 #[derive(Debug)]
-struct Function {
-    id: alias::SpanToken,
-    parameters: Vec<(alias::SpanToken, alias::SpanToken)>,
-    return_type: Option<alias::SpanToken>,
-    body: Block,
+pub struct Function {
+    pub id: lexer::SpanToken,
+    pub parameters: Vec<(lexer::SpanToken, lexer::SpanToken)>,
+    pub return_type: Option<lexer::SpanToken>,
+    pub body: Block,
 }
 
 #[derive(Debug)]
-struct Branch {
-    condition: Expression,
-    body: Block,
+pub struct Branch {
+    pub condition: Expression,
+    pub body: Block,
 }
 
 #[derive(Debug)]
-struct Call {
-    id: alias::SpanToken,
-    parameters: Vec<Expression>,
+pub struct Call {
+    pub id: lexer::SpanToken,
+    pub parameters: Vec<Expression>,
 }
 
 #[derive(Debug)]
-struct Conditional {
-    branches: Vec<Branch>,
-    tail: Option<Block>,
+pub struct Conditional {
+    pub branches: Vec<Branch>,
+    pub tail: Option<Block>,
 }
 
 #[derive(Debug)]
-struct While {
-    condition: Expression,
-    body: Block,
+pub struct While {
+    pub condition: Expression,
+    pub body: Block,
 }
 
 #[derive(Debug)]
-pub struct Program(Vec<Function>);
+pub struct Program(pub Vec<Function>);
 
-// A struct to do parsing
 struct Parser<'a> {
-    tokens: Vec<alias::SpanToken>,
-    current: Option<alias::SpanToken>,
+    tokens: Vec<lexer::SpanToken>,
+    current: Option<lexer::SpanToken>,
     filename: &'a str,
     text: &'a str,
 }
@@ -91,42 +89,42 @@ impl<'a> Parser<'a> {
         };
     }
 
-    // Generate some data, to be used for error reporting
+    // Generate some data to be used for error reporting
     fn token_report_data(&mut self) -> (&'static str, ops::Range<usize>) {
-        if let Some((token, range)) = self.current.take() {
+        if let Some(lexer::SpanToken(token, range)) = self.current.take() {
             (match token {
-                Token::Function => "`fn`",
-                Token::Variable => "`let`",
-                Token::While => "`while`",
-                Token::If => "`if`",
-                Token::Else => "`else`",
-                Token::Add => "`+`",
-                Token::Subtract => "`-`",
-                Token::Multiply => "`*`",
-                Token::Divide => "`/`",
-                Token::Modulo => "`%`",
-                Token::Assign => "`=`",
-                Token::Equal => "`==`",
-                Token::NotEqual => "`!=`",
-                Token::Larger => "`>`",
-                Token::LargerEqual => "`>=`",
-                Token::Smaller => "`<`",
-                Token::SmallerEqual => "`<=`",
-                Token::Or => "`||`",
-                Token::And => "`&&`",
-                Token::Xor => "`^`",
-                Token::Not => "`!`",
-                Token::LeftBracket => "`(`",
-                Token::RightBracket => "`)`",
-                Token::LeftCurly => "`{`",
-                Token::RightCurly => "`}`",
-                Token::Terminator => "`;`",
-                Token::Separate => "`,`",
-                Token::Arrow => "`->`",
-                Token::Hint => "`:`",
-                Token::Int(_) => "integer",
-                Token::Bool(_) => "boolean",
-                Token::Id(_) => "identifier",
+                lexer::Token::Fn => "`fn`",
+                lexer::Token::Var => "`let`",
+                lexer::Token::While => "`while`",
+                lexer::Token::If => "`if`",
+                lexer::Token::Else => "`else`",
+                lexer::Token::Add => "`+`",
+                lexer::Token::Subtract => "`-`",
+                lexer::Token::Multiply => "`*`",
+                lexer::Token::Divide => "`/`",
+                lexer::Token::Modulo => "`%`",
+                lexer::Token::Assign => "`=`",
+                lexer::Token::Equal => "`==`",
+                lexer::Token::NotEqual => "`!=`",
+                lexer::Token::Larger => "`>`",
+                lexer::Token::LargerEqual => "`>=`",
+                lexer::Token::Smaller => "`<`",
+                lexer::Token::SmallerEqual => "`<=`",
+                lexer::Token::Or => "`||`",
+                lexer::Token::And => "`&&`",
+                lexer::Token::Xor => "`^`",
+                lexer::Token::Not => "`!`",
+                lexer::Token::LeftBracket => "`(`",
+                lexer::Token::RightBracket => "`)`",
+                lexer::Token::LeftCurly => "`{`",
+                lexer::Token::RightCurly => "`}`",
+                lexer::Token::Terminator => "`;`",
+                lexer::Token::Separate => "`,`",
+                lexer::Token::Arrow => "`->`",
+                lexer::Token::Hint => "`:`",
+                lexer::Token::Int(_) => "integer",
+                lexer::Token::Bool(_) => "boolean",
+                lexer::Token::Id(_) => "identifier",
                 _ => panic!("Found error tokens on parsing tokens.")
             }, range)
         } else {
@@ -136,14 +134,9 @@ impl<'a> Parser<'a> {
         }
     }
 
-    // Again, since the grammar is LL(1), no need to lookahead more than 1 token
-    fn lookahead(&self) -> Option<&alias::SpanToken> {
+    // Since the grammar is LL(1), no need to lookahead more than 1 token
+    fn lookahead(&self) -> Option<&lexer::SpanToken> {
         self.tokens.get(0)
-    }
-
-    // Parse a program
-    fn parse(&mut self) -> Result<Program, error::Error<'a>> {
-        self.program()
     }
 
     fn program(&mut self) -> Result<Program, error::Error<'a>> {
@@ -151,17 +144,16 @@ impl<'a> Parser<'a> {
 
         let mut functions: Vec<Function> = Vec::new();
 
-        Ok(Program({
-            loop {
-                if self.current == None {
-                    break functions;
-                }
-
-                functions.push(self.function()?)
+        Ok(Program(loop {
+            if self.current == None {
+                break functions;
             }
+
+            functions.push(self.function()?)
         }))
     }
 
+    // A conditional is made as a series of branches. It calls the last "else" branch the tail
     fn conditional(&mut self) -> Result<Conditional, error::Error<'a>> {
         let mut branches = Vec::new();
 
@@ -170,8 +162,8 @@ impl<'a> Parser<'a> {
 
         Ok(loop {
             branches.push(match self.current {
-                Some((lexer::Token::Else, _)) if matches!(self.lookahead(), Some((lexer::Token::If, _))) => self.branch()?,
-                Some((lexer::Token::Else, _)) => {
+                Some(lexer::SpanToken(lexer::Token::Else, _)) if matches!(self.lookahead(), Some(lexer::SpanToken(lexer::Token::If, _))) => self.branch()?,
+                Some(lexer::SpanToken(lexer::Token::Else, _)) => {
                     self.next();
 
                     break Conditional {
@@ -187,12 +179,13 @@ impl<'a> Parser<'a> {
         })
     }
 
+    // Branches can be of the form `else if` or `if`. We can manually parse `else` branches
     fn branch(&mut self) -> Result<Branch, error::Error<'a>> {
-        if matches!(self.current, Some((lexer::Token::Else, _))) {
+        if matches!(self.current, Some(lexer::SpanToken(lexer::Token::Else, _))) {
             self.next();
         }
 
-        if matches!(self.current, Some((lexer::Token::If, _))) {
+        if matches!(self.current, Some(lexer::SpanToken(lexer::Token::If, _))) {
             self.next();
 
             Ok(Branch {
@@ -213,7 +206,7 @@ impl<'a> Parser<'a> {
     }
 
     fn while_loop(&mut self) -> Result<While, error::Error<'a>> {
-        if !matches!(self.current, Some((lexer::Token::While, _))) {
+        if !matches!(self.current, Some(lexer::SpanToken(lexer::Token::While, _))) {
             let (name, range) = self.token_report_data();
 
             return Err(error::Error::Expected {
@@ -234,7 +227,7 @@ impl<'a> Parser<'a> {
     }
 
     fn function(&mut self) -> Result<Function, error::Error<'a>> {
-        if !matches!(self.current, Some((lexer::Token::Function, _))) {
+        if !matches!(self.current, Some(lexer::SpanToken(lexer::Token::Fn, _))) {
             let (name, range) = self.token_report_data();
 
             return Err(error::Error::Expected {
@@ -248,30 +241,30 @@ impl<'a> Parser<'a> {
 
         self.next();
 
-        if matches!(self.current, Some((lexer::Token::Id(_), _))) {
+        if matches!(self.current, Some(lexer::SpanToken(lexer::Token::Id(_), _))) {
             let id = self.current.take().unwrap();
 
             self.next();
 
-            if matches!(self.current, Some((lexer::Token::LeftBracket, _))) {
+            // Get the list of parameters this function takes. This is easily the largest part of this function.
+            // It is done this way in order to allow for oxford commas
+            if matches!(self.current, Some(lexer::SpanToken(lexer::Token::LeftBracket, _))) {
                 self.next();
 
                 let mut parameters = Vec::new();
 
                 loop {
                     match self.current.take() {
-                        Some(id @ (lexer::Token::Id(_), _)) => {
+                        Some(id @ lexer::SpanToken(lexer::Token::Id(_), _)) => {
                             self.next();
 
-                            if matches!(self.current, Some((lexer::Token::Hint, _))) {
+                            if matches!(self.current, Some(lexer::SpanToken(lexer::Token::Hint, _))) {
                                 self.next();
 
-                                if matches!(self.current, Some((lexer::Token::Id(_), _))) {
-                                    let hint = self.current.take().unwrap();
+                                if matches!(self.current, Some(lexer::SpanToken(lexer::Token::Id(_), _))) {
+                                    parameters.push((id, self.current.take().unwrap()));
 
                                     self.next();
-
-                                    parameters.push((id, hint));
                                 } else {
                                     let (name, range) = self.token_report_data();
 
@@ -295,9 +288,9 @@ impl<'a> Parser<'a> {
                                 });
                             }
 
-                            if matches!(self.current, Some((lexer::Token::Separate, _))) {
+                            if matches!(self.current, Some(lexer::SpanToken(lexer::Token::Separate, _))) {
                                 self.next();
-                            } else if !matches!(self.current, Some((lexer::Token::RightBracket, _))) {
+                            } else if !matches!(self.current, Some(lexer::SpanToken(lexer::Token::RightBracket, _))) {
                                 let (name, range) = self.token_report_data();
 
                                 return Err(error::Error::Expected {
@@ -309,8 +302,8 @@ impl<'a> Parser<'a> {
                                 });
                             }
                         }
-                        Some((lexer::Token::RightBracket, _)) => break,
-                        token @ _ => {
+                        Some(lexer::SpanToken(lexer::Token::RightBracket, _)) => break,
+                        token => {
                             self.current = token;
 
                             let (name, range) = self.token_report_data();
@@ -328,12 +321,10 @@ impl<'a> Parser<'a> {
 
                 self.next();
 
-                let return_type = if matches!(self.current, Some((lexer::Token::Arrow, _))) {
+                let return_type = if matches!(self.current, Some(lexer::SpanToken(lexer::Token::Arrow, _))) {
                     self.next();
 
-                    self.next();
-
-                    if matches!(self.current, Some((lexer::Token::Id(_), _))) {
+                    if matches!(self.current, Some(lexer::SpanToken(lexer::Token::Id(_), _))) {
                         self.current.take()
                     } else {
                         let (name, range) = self.token_report_data();
@@ -380,8 +371,10 @@ impl<'a> Parser<'a> {
         }
     }
 
+    // The tail of the block is the final expression that is returned by the block. A block may not have one.
+    // Currently no named blocks or named returns exist, however this node will be redone once they are implemented
     fn block(&mut self) -> Result<Block, error::Error<'a>> {
-        if !matches!(self.current, Some((lexer::Token::LeftCurly, _))) {
+        if !matches!(self.current, Some(lexer::SpanToken(lexer::Token::LeftCurly, _))) {
             let (name, range) = self.token_report_data();
 
             return Err(error::Error::Expected {
@@ -402,7 +395,7 @@ impl<'a> Parser<'a> {
 
         loop {
             match self.current {
-                Some((lexer::Token::RightCurly, _)) => break,
+                Some(lexer::SpanToken(lexer::Token::RightCurly, _)) => break,
                 None => {
                     let (name, range) = self.token_report_data();
 
@@ -417,6 +410,13 @@ impl<'a> Parser<'a> {
                 _ => expressions.push({
                     let expression = self.expression()?;
 
+                    /*
+                    Some types of expressions don't need a termination since it can be inferred where they end.
+                    Despite the fact you could initialize a variable by using a block, you won't always do that.
+                    Thus things that don't always have the block as their final part aren't included here. Note
+                    that if these expressions are at the end of the block, having a semicolon WILL effect
+                    whether or not the function returns a value
+                    */
                     needs_termination = !matches!(expression, Expression::Block(..)
                         | Expression::While(..)
                         | Expression::Conditional(..)
@@ -428,11 +428,11 @@ impl<'a> Parser<'a> {
 
             has_tail = true;
 
-            if matches!(self.current, Some((lexer::Token::Terminator, _))) {
+            if matches!(self.current, Some(lexer::SpanToken(lexer::Token::Terminator, _))) {
                 has_tail = false;
 
                 self.next();
-            } else if needs_termination && !matches!(self.current, Some((lexer::Token::RightCurly, _))) {
+            } else if needs_termination && !matches!(self.current, Some(lexer::SpanToken(lexer::Token::RightCurly, _))) {
                 let (name, range) = self.token_report_data();
 
                 return Err(error::Error::Expected {
@@ -472,12 +472,12 @@ impl<'a> Parser<'a> {
     }
 
     fn assign(&mut self) -> Result<Assign, error::Error<'a>> {
-        if matches!(self.current, Some((lexer::Token::Id(_), _))) {
+        if matches!(self.current, Some(lexer::SpanToken(lexer::Token::Id(_), _))) {
             let id = self.current.take().unwrap();
 
             self.next();
 
-            if matches!(self.current, Some((lexer::Token::Assign, _))) {
+            if matches!(self.current, Some(lexer::SpanToken(lexer::Token::Assign, _))) {
                 self.next();
 
                 Ok(Assign {
@@ -508,8 +508,10 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn variable(&mut self) -> Result<Variable, error::Error<'a>> {
-        if !matches!(self.current, Some((lexer::Token::Variable, _))) {
+    // Constants may be added back in, although they currently are not.
+    // There is no reason not to add them aside from making the language more complex
+    fn declaration(&mut self) -> Result<Declaration, error::Error<'a>> {
+        if !matches!(self.current, Some(lexer::SpanToken(lexer::Token::Var, _))) {
             let (name, range) = self.token_report_data();
 
             return Err(error::Error::Expected {
@@ -523,17 +525,17 @@ impl<'a> Parser<'a> {
 
         self.next();
 
-        if matches!(self.current, Some((lexer::Token::Id(_), _))) {
+        if matches!(self.current, Some(lexer::SpanToken(lexer::Token::Id(_), _))) {
             let id = self.current.take().unwrap();
 
             self.next();
 
             let mut hint = None;
 
-            if matches!(self.current, Some((lexer::Token::Hint, _))) {
+            if matches!(self.current, Some(lexer::SpanToken(lexer::Token::Hint, _))) {
                 self.next();
 
-                if matches!(self.current, Some((lexer::Token::Id(_), _))) {
+                if matches!(self.current, Some(lexer::SpanToken(lexer::Token::Id(_), _))) {
                     hint = self.current.take();
 
                     self.next();
@@ -550,10 +552,10 @@ impl<'a> Parser<'a> {
                 }
             }
 
-            if matches!(self.current, Some((lexer::Token::Assign, _))) {
+            if matches!(self.current, Some(lexer::SpanToken(lexer::Token::Assign, _))) {
                 self.next();
 
-                Ok(Variable {
+                Ok(Declaration {
                     id,
                     hint,
                     value: self.expression()?,
@@ -582,25 +584,27 @@ impl<'a> Parser<'a> {
         }
     }
 
-    // Expressions are anything that returns a value
+    // Expressions are anything that returns a value. It thus follows that almost everything in Bell is an expression.
+    // In order to be in a block comment, you must be an expression.
+    // Some things are expressions, but just return the unit type such as assignments
     fn expression(&mut self) -> Result<Expression, error::Error<'a>> {
         Ok(match self.current {
-            Some((lexer::Token::Variable, _)) => Expression::Variable(Box::from(self.variable()?)),
-            Some((lexer::Token::While, _)) => Expression::While(Box::from(self.while_loop()?)),
-            Some((lexer::Token::If, _)) => Expression::Conditional(Box::from(self.conditional()?)),
-            Some((lexer::Token::LeftCurly, _)) => Expression::Block(Box::from(self.block()?)),
-            Some((lexer::Token::Function, _)) => Expression::Function(Box::from(self.function()?)),
-            Some((lexer::Token::Id(_), _)) if matches!(self.lookahead(), Some((lexer::Token::Assign, _))) => Expression::Assign(Box::from(self.assign()?)),
+            Some(lexer::SpanToken(lexer::Token::Var, _)) => Expression::Declaration(Box::from(self.declaration()?)),
+            Some(lexer::SpanToken(lexer::Token::While, _)) => Expression::While(Box::from(self.while_loop()?)),
+            Some(lexer::SpanToken(lexer::Token::If, _)) => Expression::Conditional(Box::from(self.conditional()?)),
+            Some(lexer::SpanToken(lexer::Token::LeftCurly, _)) => Expression::Block(Box::from(self.block()?)),
+            Some(lexer::SpanToken(lexer::Token::Fn, _)) => Expression::Function(Box::from(self.function()?)),
+            Some(lexer::SpanToken(lexer::Token::Id(_), _)) if matches!(self.lookahead(), Some(lexer::SpanToken(lexer::Token::Assign, _))) => Expression::Assign(Box::from(self.assign()?)),
             _ => self.logic()?
         })
     }
 
-    // Binary operations that act on booleans
+    // Logic operations act on booleans
     fn logic(&mut self) -> Result<Expression, error::Error<'a>> {
         self.binary_operation(&Self::comparison, vec![lexer::Token::Or, lexer::Token::And, lexer::Token::Xor])
     }
 
-    // Binary operations that compare objects
+    // Comparisons compare objects
     fn comparison(&mut self) -> Result<Expression, error::Error<'a>> {
         self.binary_operation(&Self::sum, vec![
             lexer::Token::Equal,
@@ -620,7 +624,9 @@ impl<'a> Parser<'a> {
         self.binary_operation(&Self::value, vec![lexer::Token::Multiply, lexer::Token::Divide, lexer::Token::Modulo])
     }
 
-    // A "generic" function to parse a binary operation. Is used primarily by expression-related nodes
+    // A "generic" function to parse a binary operation. Is used by math expression-related nodes.
+    // Each group of operations are implemented in their own function, so operator precedence will work
+    #[inline]
     fn binary_operation<F>(&mut self, operand: &F, operators: Vec<lexer::Token>) -> Result<Expression, error::Error<'a>>
         where F: Fn(&mut Self) -> Result<Expression, error::Error<'a>>
     {
@@ -628,25 +634,25 @@ impl<'a> Parser<'a> {
 
         loop {
             match self.current.to_owned() {
-                Some((operator, range)) if operators.contains(&operator) => left = {
+                Some(lexer::SpanToken(operator, range)) if operators.contains(&operator) => left = {
                     self.next();
                     let right = operand(self)?;
 
                     Expression::Call(match operator {
-                        lexer::Token::Add => Call { id: (lexer::Token::Id(String::from("add")), range.clone()), parameters: vec![left, right] },
-                        lexer::Token::Subtract => Call { id: (lexer::Token::Id(String::from("subtract")), range), parameters: vec![left, right] },
-                        lexer::Token::Multiply => Call { id: (lexer::Token::Id(String::from("multiply")), range), parameters: vec![left, right] },
-                        lexer::Token::Divide => Call { id: (lexer::Token::Id(String::from("divide")), range), parameters: vec![left, right] },
-                        lexer::Token::Modulo => Call { id: (lexer::Token::Id(String::from("modulo")), range), parameters: vec![left, right] },
-                        lexer::Token::Equal => Call { id: (lexer::Token::Id(String::from("equal")), range), parameters: vec![left, right] },
-                        lexer::Token::NotEqual => Call { id: (lexer::Token::Id(String::from("not_equal")), range), parameters: vec![left, right] },
-                        lexer::Token::Smaller => Call { id: (lexer::Token::Id(String::from("smaller")), range), parameters: vec![left, right] },
-                        lexer::Token::SmallerEqual => Call { id: (lexer::Token::Id(String::from("smaller_equal")), range), parameters: vec![left, right] },
-                        lexer::Token::Larger => Call { id: (lexer::Token::Id(String::from("larger")), range), parameters: vec![left, right] },
-                        lexer::Token::LargerEqual => Call { id: (lexer::Token::Id(String::from("larger_equal")), range), parameters: vec![left, right] },
-                        lexer::Token::Or => Call { id: (lexer::Token::Id(String::from("or")), range), parameters: vec![left, right] },
-                        lexer::Token::And => Call { id: (lexer::Token::Id(String::from("and")), range), parameters: vec![left, right] },
-                        lexer::Token::Xor => Call { id: (lexer::Token::Id(String::from("xor")), range), parameters: vec![left, right] },
+                        lexer::Token::Add => Call { id: lexer::SpanToken(lexer::Token::Id(String::from("add")), range), parameters: vec![left, right] },
+                        lexer::Token::Subtract => Call { id: lexer::SpanToken(lexer::Token::Id(String::from("subtract")), range), parameters: vec![left, right] },
+                        lexer::Token::Multiply => Call { id: lexer::SpanToken(lexer::Token::Id(String::from("multiply")), range), parameters: vec![left, right] },
+                        lexer::Token::Divide => Call { id: lexer::SpanToken(lexer::Token::Id(String::from("divide")), range), parameters: vec![left, right] },
+                        lexer::Token::Modulo => Call { id: lexer::SpanToken(lexer::Token::Id(String::from("modulo")), range), parameters: vec![left, right] },
+                        lexer::Token::Equal => Call { id: lexer::SpanToken(lexer::Token::Id(String::from("equal")), range), parameters: vec![left, right] },
+                        lexer::Token::NotEqual => Call { id: lexer::SpanToken(lexer::Token::Id(String::from("not_equal")), range), parameters: vec![left, right] },
+                        lexer::Token::Smaller => Call { id: lexer::SpanToken(lexer::Token::Id(String::from("smaller")), range), parameters: vec![left, right] },
+                        lexer::Token::SmallerEqual => Call { id: lexer::SpanToken(lexer::Token::Id(String::from("smaller_equal")), range), parameters: vec![left, right] },
+                        lexer::Token::Larger => Call { id: lexer::SpanToken(lexer::Token::Id(String::from("larger")), range), parameters: vec![left, right] },
+                        lexer::Token::LargerEqual => Call { id: lexer::SpanToken(lexer::Token::Id(String::from("larger_equal")), range), parameters: vec![left, right] },
+                        lexer::Token::Or => Call { id: lexer::SpanToken(lexer::Token::Id(String::from("or")), range), parameters: vec![left, right] },
+                        lexer::Token::And => Call { id: lexer::SpanToken(lexer::Token::Id(String::from("and")), range), parameters: vec![left, right] },
+                        lexer::Token::Xor => Call { id: lexer::SpanToken(lexer::Token::Id(String::from("xor")), range), parameters: vec![left, right] },
                         _ => panic!("Invalid token as operator")
                     })
                 },
@@ -655,21 +661,22 @@ impl<'a> Parser<'a> {
         }
     }
 
-    // A value is an atom, a fundamental unit that cannot be split (generally)
+    // Values represent a single value which can be manipulated by expressions.
+    // When used in expressions, it's impossible to get any lower than them. They make up expressions
     fn value(&mut self) -> Result<Expression, error::Error<'a>> {
         let current = self.current.take();
         self.next();
 
         Ok(match current {
-            Some(value @ (lexer::Token::Int(_), _)) => Expression::Int(value),
-            Some(id @ (lexer::Token::Id(_), _)) if matches!(self.current, Some((lexer::Token::LeftBracket, _))) => {
+            Some(int @ lexer::SpanToken(lexer::Token::Int(_), _)) => Expression::Int(int),
+            Some(id @ lexer::SpanToken(lexer::Token::Id(_), _)) if matches!(self.current, Some(lexer::SpanToken(lexer::Token::LeftBracket, _))) => {
                 self.next();
 
                 let mut parameters = Vec::new();
 
                 loop {
                     match self.current {
-                        Some((lexer::Token::RightBracket, _)) => break,
+                        Some(lexer::SpanToken(lexer::Token::RightBracket, _)) => break,
                         None => {
                             let (name, range) = self.token_report_data();
 
@@ -684,9 +691,9 @@ impl<'a> Parser<'a> {
                         _ => parameters.push(self.expression()?)
                     }
 
-                    if matches!(self.current, Some((lexer::Token::Separate, _))) {
+                    if matches!(self.current, Some(lexer::SpanToken(lexer::Token::Separate, _))) {
                         self.next();
-                    } else if !matches!(self.current, Some((lexer::Token::RightBracket, _))) {
+                    } else if !matches!(self.current, Some(lexer::SpanToken(lexer::Token::RightBracket, _))) {
                         let (name, range) = self.token_report_data();
 
                         return Err(error::Error::Expected {
@@ -706,16 +713,16 @@ impl<'a> Parser<'a> {
                     parameters,
                 })
             }
-            Some(value @ (lexer::Token::Id(_), _)) => Expression::Id(value),
-            Some(value @ (lexer::Token::Bool(_), _)) => Expression::Bool(value),
-            Some((lexer::Token::Not, range)) => Expression::Call(Call {
-                id: (lexer::Token::Id(String::from("not")), range),
+            Some(id @ lexer::SpanToken(lexer::Token::Id(_), _)) => Expression::Id(id),
+            Some(bool @ lexer::SpanToken(lexer::Token::Bool(_), _)) => Expression::Bool(bool),
+            Some(lexer::SpanToken(lexer::Token::Not, range)) => Expression::Call(Call {
+                id: lexer::SpanToken(lexer::Token::Id(String::from("not")), range),
                 parameters: vec![self.value()?],
             }),
-            Some((lexer::Token::LeftBracket, _)) => {
+            Some(lexer::SpanToken(lexer::Token::LeftBracket, _)) => {
                 let result = self.expression()?;
 
-                if matches!(self.current, Some((lexer::Token::RightBracket, _))) {
+                if matches!(self.current, Some(lexer::SpanToken(lexer::Token::RightBracket, _))) {
                     self.next();
 
                     result
@@ -748,11 +755,11 @@ impl<'a> Parser<'a> {
     }
 }
 
-pub fn parse<'a>(filename: &'a str, text: &'a str, tokens: Vec<alias::SpanToken>) -> Result<Program, error::Error<'a>> {
+pub fn parse<'a>(filename: &'a str, text: &'a str, tokens: Vec<lexer::SpanToken>) -> Result<Program, error::Error<'a>> {
     Parser {
         filename,
         text,
         tokens,
         current: None,
-    }.parse()
+    }.program()
 }
