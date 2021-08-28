@@ -1,9 +1,9 @@
-use std::{ops, hash};
+use std::hash::Hasher;
+use std::{hash, ops};
 
 use logos::Logos;
 
 use crate::core::error;
-use std::hash::Hasher;
 
 #[derive(Logos, Debug, Clone, Eq, PartialEq, Hash)]
 pub enum Token {
@@ -45,8 +45,6 @@ pub enum Token {
     Or,
     #[token("&&")]
     And,
-    #[token("^")]
-    Xor,
     #[token("!")]
     Not,
     #[token("(")]
@@ -132,18 +130,28 @@ pub fn tokenize<'a>(filename: &'a str, text: &'a str) -> Result<Vec<SpanToken>, 
     // Create the error enums from the error tokens Logos generated
     for SpanToken(token, span) in &tokens {
         match token {
-            Token::InvalidCharacter => return Err(error::Error::InvalidCharacter {
-                filename,
-                text,
-                range: span.clone(),
-                character: text[span.clone()]
-                    .parse()
-                    .unwrap(),
-            }),
-            Token::UnterminatedBlockComment => return Err(error::Error::UnterminatedBlockComment { filename, text, range: span.to_owned() }),
-            _ => continue
+            Token::InvalidCharacter => {
+                return Err(error::Error {
+                    filename,
+                    text,
+                    error: error::ErrorKind::InvalidCharacter {
+                        range: span.clone(),
+                        character: text[span.clone()].parse().unwrap(),
+                    },
+                });
+            }
+            Token::UnterminatedBlockComment => {
+                return Err(error::Error {
+                    filename,
+                    text,
+                    error: error::ErrorKind::UnterminatedBlockComment {
+                        range: span.to_owned(),
+                    },
+                });
+            }
+            _ => continue,
         };
-    };
+    }
 
     Ok(tokens)
 }
