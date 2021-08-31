@@ -14,25 +14,36 @@ pub enum ErrorKind<'a> {
     UnterminatedBlockComment {
         range: ops::Range<usize>,
     },
-    Expected {
+    ExpectedDifferentToken {
         range: ops::Range<usize>,
         expected: &'static [&'static str],
         found: &'a str,
     },
-    DuplicateParameter {
-        existing: ops::Range<usize>,
-        found: ops::Range<usize>,
+    ShadowedSymbol {
+        old: ops::Range<usize>,
+        new: ops::Range<usize>,
         name: String,
+        symbol: String,
     },
     DataTypeMismatch {
         expected: String,
-        found: String,
+        got: String,
         because: Option<ops::Range<usize>>,
-        location: ops::Range<usize>,
+        got_location: ops::Range<usize>,
     },
     // todo: Provide suggestions for valid variables to use
     UndeclaredSymbol {
         name: String,
         usage: ops::Range<usize>,
+    },
+    NoElseBranch {
+        location: ops::Range<usize>,
+    },
+    ParameterCountMismatch {
+        expected_count: usize,
+        got_count: usize,
+        because: Option<ops::Range<usize>>,
+        got_location: ops::Range<usize>,
+        function: String,
     },
 }

@@ -29,10 +29,7 @@ impl Report for error::Error<'_> {
         match self.error {
             error::ErrorKind::InvalidCharacter { range, character } => {
                 ariadne::Report::build(ariadne::ReportKind::Error, self.filename, range.start)
-                    .with_message(format!(
-                        "Character {} is invalid.",
-                        format!("`{}`", character)
-                    ))
+                    .with_message(format!("Character `{}` is invalid.", character))
                     .with_code(1)
                     .with_label(
                         ariadne::Label::new((self.filename, range))
@@ -48,16 +45,13 @@ impl Report for error::Error<'_> {
                     .with_code(2)
                     .with_label(
                         ariadne::Label::new((self.filename, range))
-                            .with_message(format!(
-                                "Expected a {}, somewhere in this range.",
-                                "`*/`"
-                            ))
+                            .with_message("Expected a `*/`, somewhere in this range.")
                             .with_color(ariadne::Color::Red),
                     )
                     .finish()
                     .eprint((self.filename, ariadne::Source::from(self.text)))
             }
-            error::ErrorKind::Expected {
+            error::ErrorKind::ExpectedDifferentToken {
                 range,
                 expected,
                 found,
@@ -75,76 +69,118 @@ impl Report for error::Error<'_> {
                 )
                 .finish()
                 .eprint((self.filename, ariadne::Source::from(self.text))),
-            error::ErrorKind::DuplicateParameter {
-                existing,
-                found,
-                name,
-            } => ariadne::Report::build(ariadne::ReportKind::Error, self.filename, found.start)
-                .with_message(format!("Duplicate parameter {}.", format!("`{}`", name)))
-                .with_code(3)
-                .with_label(
-                    ariadne::Label::new((self.filename, existing))
-                        .with_message(format!(
-                            "You first declared {} here.",
-                            format!("`{}`", name)
-                        ))
-                        .with_color(ariadne::Color::Blue),
-                )
-                .with_label(
-                    ariadne::Label::new((self.filename, found))
-                        .with_message("But you declared it again here.")
-                        .with_color(ariadne::Color::Red),
-                )
-                .finish()
-                .eprint((self.filename, ariadne::Source::from(self.text))),
             error::ErrorKind::DataTypeMismatch {
                 expected,
-                found,
+                got: found,
                 because,
-                location,
+                got_location: location,
             } => {
-                let report = ariadne::Report::build(
+                let mut report = ariadne::Report::build(
                     ariadne::ReportKind::Error,
                     self.filename,
                     location.start,
                 )
                 .with_message(format!(
-                    "Expected data of type {}, found {}.",
+                    "Expected data of type `{}`, got `{}`.",
                     expected, found
                 ))
                 .with_code(4);
-                if let Some(because) = because {
-                    report.with_label(
-                        ariadne::Label::new((self.filename, because))
-                            .with_message(format!(
-                                "Expected data of type {} because of this.",
-                                expected
-                            ))
-                            .with_color(ariadne::Color::Blue),
-                    )
-                } else {
+
+                report = if let Some(because) = because {
                     report
-                }
+                        .with_label(
+                            ariadne::Label::new((self.filename, because))
+                                .with_message(format!(
+                                    "Expected data of type `{}` because of this.",
+                                    expected
+                                ))
+                                .with_color(ariadne::Color::Blue),
+                        )
+                        .with_label(
+                            ariadne::Label::new((self.filename, location))
+                                .with_message(format!(
+                                    "But got data of type `{}` because of this.",
+                                    found
+                                ))
+                                .with_color(ariadne::Color::Red),
+                        )
+                } else {
+                    report.with_label(
+                        ariadne::Label::new((self.filename, location))
+                            .with_message("Here.")
+                            .with_color(ariadne::Color::Red),
+                    )
+                };
+
+                report
+                    .finish()
+                    .eprint((self.filename, ariadne::Source::from(self.text)))
+            }
+            error::ErrorKind::ShadowedSymbol {
+                name,
+                old,
+                new,
+                symbol,
+            } => ariadne::Report::build(ariadne::ReportKind::Error, self.filename, old.start)
+                .with_message(format!("A {} named `{}` already exists.", symbol, name))
+                .with_code(5)
                 .with_label(
-                    ariadne::Label::new((self.filename, location))
-                        .with_message(format!("Got data of type {} because of this.", found))
+                    ariadne::Label::new((self.filename, old))
+                        .with_message(format!("`{}` is first declared here.", name))
+                        .with_color(ariadne::Color::Blue),
+                )
+                .with_label(
+                    ariadne::Label::new((self.filename, new))
+                        .with_message(format!("But then `{}` is declared again here!", name))
                         .with_color(ariadne::Color::Red),
                 )
+                .with_note("Only variables can be re-declared; Functions and parameters cannot.")
                 .finish()
-                .eprint((self.filename, ariadne::Source::from(self.text)))
-            }
+                .eprint((self.filename, ariadne::Source::from(self.text))),
             error::ErrorKind::UndeclaredSymbol { name, usage } => {
                 ariadne::Report::build(ariadne::ReportKind::Error, self.filename, usage.start)
-                    .with_message(format!("{} is used before it's declared.", name))
-                    .with_code(5)
+                    .with_message(format!("`{}` is used before it's declared.", name))
+                    .with_code(6)
                     .with_label(
                         ariadne::Label::new((self.filename, usage))
                             .with_message(format!(
-                                "{} is used here, but it isn't defined in any scope!",
+                                "`{}` is used here, but it isn't declared in any scope!",
                                 name
                             ))
                             .with_color(ariadne::Color::Red),
                     )
+                    .finish()
+                    .eprint((self.filename, ariadne::Source::from(self.text)))
+            }
+            error::ErrorKind::NoElseBranch { location } =>
+                ariadne::Report::build(ariadne::ReportKind::Error, self.filename, location.start)
+                    .with_message("Conditional expression doesn't contain an `else` branch.")
+                    .with_code(7)
+                    .with_label(ariadne::Label::new((self.filename, location))
+                        .with_message("This conditional must always return a value. But it doesn't, since it has no else branch.")
+                        .with_color(ariadne::Color::Red))
+                    .with_note("When a conditionals other branches return the `unit` type, an else branch isn't needed.")
+                    .finish()
+                    .eprint((self.filename, ariadne::Source::from(self.text))),
+            error::ErrorKind::ParameterCountMismatch { expected_count, got_count, because, got_location, function } => {
+                 let report = ariadne::Report::build(ariadne::ReportKind::Error, self.filename, got_location.start)
+                    .with_message(format!("Function `{}` expected {} parameter(s), but got {} parameter(s)", function, expected_count, got_count))
+                    .with_code(8);
+
+                if let Some(because) = because {
+                    report
+                    .with_label(ariadne::Label::new((self.filename, because))
+                        .with_message(format!("Expected all calls to {} to take {} parameter(s) because of this.", function, expected_count))
+                        .with_color(ariadne::Color::Blue))
+                        .with_label(ariadne::Label::new((self.filename, got_location))
+                            .with_message(format!("But this call to {} gave {} parameter(s).", function, got_count))
+                            .with_color(ariadne::Color::Red))
+                } else {
+                    report
+                        .with_label(ariadne::Label::new((self.filename, got_location))
+                            .with_message("Here.")
+                            .with_color(ariadne::Color::Red))
+                }
                     .finish()
                     .eprint((self.filename, ariadne::Source::from(self.text)))
             }
@@ -210,11 +246,11 @@ fn main() {
         eprintln!(
             "{} Could not locate file: `{}`.",
             ariadne::Color::Red.paint("Error:"),
-            ariadne::Color::Blue.paint(format!("`{}`", file))
+            file
         );
 
         process::exit(exitcode::DATAERR);
-    });
+    }) + " "; // Adds an extra whitespace so error rendering works flawlessly
 
     let now = time::Instant::now();
     let result = lang::compile(file, &text, level);

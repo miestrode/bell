@@ -51,7 +51,7 @@ mod tests {
             &String::from(
                 r"
             fn factorial(number: int) -> int {
-                var product = number;
+                let product = number;
 
                 while number > 1 {
                     product = product * number;
@@ -111,8 +111,8 @@ mod tests {
         crate::compile_text(
             r"
         fn is_prime(num: int) -> bool {
-            var check = 2;
-            var is_prime = false;
+            let check = 2;
+            let is_prime = false;
 
             // Cannot do early return yet so this is less efficient
             while check < num {
@@ -137,7 +137,7 @@ mod tests {
         crate::compile_text(
             r"
         fn main() {
-            var x = 2;
+            let x = 2;
         }
         ",
             2,

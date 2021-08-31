@@ -114,7 +114,7 @@ impl<'a> Parser<'a> {
             (
                 match token {
                     lexer::Token::Fn => "`fn`",
-                    lexer::Token::Var => "`let`",
+                    lexer::Token::Let => "`let`",
                     lexer::Token::While => "`while`",
                     lexer::Token::If => "`if`",
                     lexer::Token::Else => "`else`",
@@ -198,14 +198,14 @@ impl<'a> Parser<'a> {
                     break Conditional {
                         branches,
                         tail: Some(self.block()?),
-                        range: start..self.get_token_range().end,
+                        range: start..self.get_token_range().start,
                     };
                 }
                 _ => {
                     break Conditional {
                         branches,
                         tail: None,
-                        range: start..self.get_token_range().end,
+                        range: start..self.get_token_range().start,
                     }
                 }
             })
@@ -226,7 +226,7 @@ impl<'a> Parser<'a> {
             Ok(Branch {
                 condition: self.expression()?,
                 body: self.block()?,
-                range: start..self.get_token_range().end,
+                range: start..self.get_token_range().start,
             })
         } else {
             let (name, range) = self.token_report_data();
@@ -234,7 +234,7 @@ impl<'a> Parser<'a> {
             Err(error::Error {
                 filename: self.filename,
                 text: self.text,
-                error: error::ErrorKind::Expected {
+                error: error::ErrorKind::ExpectedDifferentToken {
                     range,
                     expected: &["`if`"],
                     found: name,
@@ -252,7 +252,7 @@ impl<'a> Parser<'a> {
             return Err(error::Error {
                 filename: self.filename,
                 text: self.text,
-                error: error::ErrorKind::Expected {
+                error: error::ErrorKind::ExpectedDifferentToken {
                     range,
                     expected: &["`while`"],
                     found: name,
@@ -265,7 +265,7 @@ impl<'a> Parser<'a> {
         Ok(While {
             condition: self.expression()?,
             body: self.block()?,
-            range: start..self.get_token_range().end,
+            range: start..self.get_token_range().start,
         })
     }
 
@@ -278,7 +278,7 @@ impl<'a> Parser<'a> {
             return Err(error::Error {
                 filename: self.filename,
                 text: self.text,
-                error: error::ErrorKind::Expected {
+                error: error::ErrorKind::ExpectedDifferentToken {
                     range,
                     expected: &["`fn`"],
                     found: name,
@@ -325,7 +325,7 @@ impl<'a> Parser<'a> {
                                     return Err(error::Error {
                                         filename: self.filename,
                                         text: self.text,
-                                        error: error::ErrorKind::Expected {
+                                        error: error::ErrorKind::ExpectedDifferentToken {
                                             range,
                                             expected: &["identifier"],
                                             found: name,
@@ -338,7 +338,7 @@ impl<'a> Parser<'a> {
                                 return Err(error::Error {
                                     filename: self.filename,
                                     text: self.text,
-                                    error: error::ErrorKind::Expected {
+                                    error: error::ErrorKind::ExpectedDifferentToken {
                                         range,
                                         expected: &["type specifier"],
                                         found: name,
@@ -360,7 +360,7 @@ impl<'a> Parser<'a> {
                                 return Err(error::Error {
                                     filename: self.filename,
                                     text: self.text,
-                                    error: error::ErrorKind::Expected {
+                                    error: error::ErrorKind::ExpectedDifferentToken {
                                         range,
                                         expected: &["`,`", "`)`"],
                                         found: name,
@@ -377,7 +377,7 @@ impl<'a> Parser<'a> {
                             return Err(error::Error {
                                 filename: self.filename,
                                 text: self.text,
-                                error: error::ErrorKind::Expected {
+                                error: error::ErrorKind::ExpectedDifferentToken {
                                     range,
                                     expected: &["parameter", "`)`"],
                                     found: name,
@@ -405,7 +405,7 @@ impl<'a> Parser<'a> {
                             return Err(error::Error {
                                 filename: self.filename,
                                 text: self.text,
-                                error: error::ErrorKind::Expected {
+                                error: error::ErrorKind::ExpectedDifferentToken {
                                     range,
                                     expected: &["identifier"],
                                     found: name,
@@ -421,7 +421,7 @@ impl<'a> Parser<'a> {
                     parameters,
                     return_type,
                     body: self.block()?,
-                    range: start..self.get_token_range().end,
+                    range: start..self.get_token_range().start,
                 })
             } else {
                 let (name, range) = self.token_report_data();
@@ -429,7 +429,7 @@ impl<'a> Parser<'a> {
                 Err(error::Error {
                     filename: self.filename,
                     text: self.text,
-                    error: error::ErrorKind::Expected {
+                    error: error::ErrorKind::ExpectedDifferentToken {
                         range,
                         expected: &["`(`"],
                         found: name,
@@ -442,7 +442,7 @@ impl<'a> Parser<'a> {
             Err(error::Error {
                 filename: self.filename,
                 text: self.text,
-                error: error::ErrorKind::Expected {
+                error: error::ErrorKind::ExpectedDifferentToken {
                     range,
                     expected: &["identifier"],
                     found: name,
@@ -465,7 +465,7 @@ impl<'a> Parser<'a> {
             return Err(error::Error {
                 filename: self.filename,
                 text: self.text,
-                error: error::ErrorKind::Expected {
+                error: error::ErrorKind::ExpectedDifferentToken {
                     range,
                     expected: &["`{`"],
                     found: name,
@@ -489,7 +489,7 @@ impl<'a> Parser<'a> {
                     return Err(error::Error {
                         filename: self.filename,
                         text: self.text,
-                        error: error::ErrorKind::Expected {
+                        error: error::ErrorKind::ExpectedDifferentToken {
                             range,
                             expected: &["expression", "`}`"],
                             found: name,
@@ -538,7 +538,7 @@ impl<'a> Parser<'a> {
                 return Err(error::Error {
                     filename: self.filename,
                     text: self.text,
-                    error: error::ErrorKind::Expected {
+                    error: error::ErrorKind::ExpectedDifferentToken {
                         range,
                         expected: &["`;`", "`}`"],
                         found: name,
@@ -553,7 +553,7 @@ impl<'a> Parser<'a> {
             return Err(error::Error {
                 filename: self.filename,
                 text: self.text,
-                error: error::ErrorKind::Expected {
+                error: error::ErrorKind::ExpectedDifferentToken {
                     range,
                     expected: &["`}`"],
                     found: name,
@@ -568,7 +568,7 @@ impl<'a> Parser<'a> {
         Ok(Block {
             expressions,
             tail,
-            range: start..self.get_token_range().end,
+            range: start..self.get_token_range().start,
         })
     }
 
@@ -589,7 +589,7 @@ impl<'a> Parser<'a> {
                 Ok(Assign {
                     id,
                     value: self.expression()?,
-                    range: start..self.get_token_range().end,
+                    range: start..self.get_token_range().start,
                 })
             } else {
                 let (name, range) = self.token_report_data();
@@ -597,7 +597,7 @@ impl<'a> Parser<'a> {
                 Err(error::Error {
                     filename: self.filename,
                     text: self.text,
-                    error: error::ErrorKind::Expected {
+                    error: error::ErrorKind::ExpectedDifferentToken {
                         range,
                         expected: &["`=`"],
                         found: name,
@@ -610,7 +610,7 @@ impl<'a> Parser<'a> {
             Err(error::Error {
                 filename: self.filename,
                 text: self.text,
-                error: error::ErrorKind::Expected {
+                error: error::ErrorKind::ExpectedDifferentToken {
                     range,
                     expected: &["identifier"],
                     found: name,
@@ -624,13 +624,13 @@ impl<'a> Parser<'a> {
     fn declaration(&mut self) -> Result<Declaration, error::Error<'a>> {
         let start = self.get_token_range().start;
 
-        if !matches!(self.current, Some(lexer::SpanToken(lexer::Token::Var, _))) {
+        if !matches!(self.current, Some(lexer::SpanToken(lexer::Token::Let, _))) {
             let (name, range) = self.token_report_data();
 
             return Err(error::Error {
                 filename: self.filename,
                 text: self.text,
-                error: error::ErrorKind::Expected {
+                error: error::ErrorKind::ExpectedDifferentToken {
                     range,
                     expected: &["`var`"],
                     found: name,
@@ -660,7 +660,7 @@ impl<'a> Parser<'a> {
                     return Err(error::Error {
                         filename: self.filename,
                         text: self.text,
-                        error: error::ErrorKind::Expected {
+                        error: error::ErrorKind::ExpectedDifferentToken {
                             range,
                             expected: &["identifier"],
                             found: name,
@@ -679,7 +679,7 @@ impl<'a> Parser<'a> {
                     id,
                     hint,
                     value: self.expression()?,
-                    range: start..self.get_token_range().end,
+                    range: start..self.get_token_range().start,
                 })
             } else {
                 let (name, range) = self.token_report_data();
@@ -687,7 +687,7 @@ impl<'a> Parser<'a> {
                 Err(error::Error {
                     filename: self.filename,
                     text: self.text,
-                    error: error::ErrorKind::Expected {
+                    error: error::ErrorKind::ExpectedDifferentToken {
                         range,
                         expected: &["`=`"],
                         found: name,
@@ -700,7 +700,7 @@ impl<'a> Parser<'a> {
             Err(error::Error {
                 filename: self.filename,
                 text: self.text,
-                error: error::ErrorKind::Expected {
+                error: error::ErrorKind::ExpectedDifferentToken {
                     range,
                     expected: &["identifier"],
                     found: name,
@@ -714,7 +714,7 @@ impl<'a> Parser<'a> {
     // Some things are expressions, but just return the unit type such as assignments
     fn expression(&mut self) -> Result<Expression, error::Error<'a>> {
         Ok(match self.current {
-            Some(lexer::SpanToken(lexer::Token::Var, _)) => {
+            Some(lexer::SpanToken(lexer::Token::Let, _)) => {
                 Expression::Declaration(Box::from(self.declaration()?))
             }
             Some(lexer::SpanToken(lexer::Token::While, _)) => {
@@ -804,7 +804,7 @@ impl<'a> Parser<'a> {
                             lexer::Token::Add => Call {
                                 id: lexer::SpanToken(lexer::Token::Id(String::from("add")), range),
                                 parameters: vec![left, right],
-                                range: start..self.get_token_range().end,
+                                range: start..self.get_token_range().start,
                             },
                             lexer::Token::Subtract => Call {
                                 id: lexer::SpanToken(
@@ -812,7 +812,7 @@ impl<'a> Parser<'a> {
                                     range,
                                 ),
                                 parameters: vec![left, right],
-                                range: start..self.get_token_range().end,
+                                range: start..self.get_token_range().start,
                             },
                             lexer::Token::Multiply => Call {
                                 id: lexer::SpanToken(
@@ -820,7 +820,7 @@ impl<'a> Parser<'a> {
                                     range,
                                 ),
                                 parameters: vec![left, right],
-                                range: start..self.get_token_range().end,
+                                range: start..self.get_token_range().start,
                             },
                             lexer::Token::Divide => Call {
                                 id: lexer::SpanToken(
@@ -828,7 +828,7 @@ impl<'a> Parser<'a> {
                                     range,
                                 ),
                                 parameters: vec![left, right],
-                                range: start..self.get_token_range().end,
+                                range: start..self.get_token_range().start,
                             },
                             lexer::Token::Modulo => Call {
                                 id: lexer::SpanToken(
@@ -836,7 +836,7 @@ impl<'a> Parser<'a> {
                                     range,
                                 ),
                                 parameters: vec![left, right],
-                                range: start..self.get_token_range().end,
+                                range: start..self.get_token_range().start,
                             },
                             lexer::Token::Equal => Call {
                                 id: lexer::SpanToken(
@@ -844,7 +844,7 @@ impl<'a> Parser<'a> {
                                     range,
                                 ),
                                 parameters: vec![left, right],
-                                range: start..self.get_token_range().end,
+                                range: start..self.get_token_range().start,
                             },
                             lexer::Token::NotEqual => Call {
                                 id: lexer::SpanToken(
@@ -852,49 +852,49 @@ impl<'a> Parser<'a> {
                                     range,
                                 ),
                                 parameters: vec![left, right],
-                                range: start..self.get_token_range().end,
+                                range: start..self.get_token_range().start,
                             },
                             lexer::Token::Larger => Call {
                                 id: lexer::SpanToken(
-                                    lexer::Token::Id(String::from("larger")),
+                                    lexer::Token::Id(String::from("greater")),
                                     range,
                                 ),
                                 parameters: vec![left, right],
-                                range: start..self.get_token_range().end,
+                                range: start..self.get_token_range().start,
                             },
                             lexer::Token::LargerEqual => Call {
                                 id: lexer::SpanToken(
-                                    lexer::Token::Id(String::from("larger_equal")),
+                                    lexer::Token::Id(String::from("greater_equal")),
                                     range,
                                 ),
                                 parameters: vec![left, right],
-                                range: start..self.get_token_range().end,
+                                range: start..self.get_token_range().start,
                             },
                             lexer::Token::Smaller => Call {
                                 id: lexer::SpanToken(
-                                    lexer::Token::Id(String::from("smaller")),
+                                    lexer::Token::Id(String::from("lesser")),
                                     range,
                                 ),
                                 parameters: vec![left, right],
-                                range: start..self.get_token_range().end,
+                                range: start..self.get_token_range().start,
                             },
                             lexer::Token::SmallerEqual => Call {
                                 id: lexer::SpanToken(
-                                    lexer::Token::Id(String::from("smaller_equal")),
+                                    lexer::Token::Id(String::from("lesser_equal")),
                                     range,
                                 ),
                                 parameters: vec![left, right],
-                                range: start..self.get_token_range().end,
+                                range: start..self.get_token_range().start,
                             },
                             lexer::Token::Or => Call {
                                 id: lexer::SpanToken(lexer::Token::Id(String::from("or")), range),
                                 parameters: vec![left, right],
-                                range: start..self.get_token_range().end,
+                                range: start..self.get_token_range().start,
                             },
                             lexer::Token::And => Call {
                                 id: lexer::SpanToken(lexer::Token::Id(String::from("and")), range),
                                 parameters: vec![left, right],
-                                range: start..self.get_token_range().end,
+                                range: start..self.get_token_range().start,
                             },
                             _ => panic!("Invalid token as operator"),
                         })
@@ -934,7 +934,7 @@ impl<'a> Parser<'a> {
                             return Err(error::Error {
                                 filename: self.filename,
                                 text: self.text,
-                                error: error::ErrorKind::Expected {
+                                error: error::ErrorKind::ExpectedDifferentToken {
                                     range,
                                     expected: &["expression", "`)`"],
                                     found: name,
@@ -958,7 +958,7 @@ impl<'a> Parser<'a> {
                         return Err(error::Error {
                             filename: self.filename,
                             text: self.text,
-                            error: error::ErrorKind::Expected {
+                            error: error::ErrorKind::ExpectedDifferentToken {
                                 range,
                                 expected: &["`,`", "`)`"],
                                 found: name,
@@ -972,7 +972,7 @@ impl<'a> Parser<'a> {
                 Expression::Call(Call {
                     id,
                     parameters,
-                    range: start..self.get_token_range().end,
+                    range: start..self.get_token_range().start,
                 })
             }
             Some(id @ lexer::SpanToken(lexer::Token::Id(_), _)) => Expression::Id(id),
@@ -980,7 +980,12 @@ impl<'a> Parser<'a> {
             Some(lexer::SpanToken(lexer::Token::Not, range)) => Expression::Call(Call {
                 id: lexer::SpanToken(lexer::Token::Id(String::from("not")), range),
                 parameters: vec![self.value()?],
-                range: start..self.get_token_range().end,
+                range: start..self.get_token_range().start,
+            }),
+            Some(lexer::SpanToken(lexer::Token::Subtract, range)) => Expression::Call(Call {
+                id: lexer::SpanToken(lexer::Token::Id(String::from("negate")), range),
+                parameters: vec![self.value()?],
+                range: start..self.get_token_range().start,
             }),
             Some(lexer::SpanToken(lexer::Token::LeftBracket, _)) => {
                 let result = self.expression()?;
@@ -998,7 +1003,7 @@ impl<'a> Parser<'a> {
                     return Err(error::Error {
                         filename: self.filename,
                         text: self.text,
-                        error: error::ErrorKind::Expected {
+                        error: error::ErrorKind::ExpectedDifferentToken {
                             range,
                             expected: &["`)`"],
                             found: name,
@@ -1014,7 +1019,7 @@ impl<'a> Parser<'a> {
                 return Err(error::Error {
                     filename: self.filename,
                     text: self.text,
-                    error: error::ErrorKind::Expected {
+                    error: error::ErrorKind::ExpectedDifferentToken {
                         range,
                         expected: &["integer", "boolean", "identifier", "`(`"],
                         found: name,

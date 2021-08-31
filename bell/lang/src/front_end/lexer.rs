@@ -9,8 +9,8 @@ use crate::core::error;
 pub enum Token {
     #[token("fn")]
     Fn,
-    #[token("var")]
-    Var,
+    #[token("let")]
+    Let,
     #[token("while")]
     While,
     #[token("if")]
