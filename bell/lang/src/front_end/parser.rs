@@ -83,6 +83,8 @@ pub struct Program(pub Vec<Function>);
 struct Parser<'a> {
     tokens: Vec<lexer::SpanToken>,
     current: Option<lexer::SpanToken>,
+    last_end: usize,
+    // Used for node span detection
     filename: &'a str,
     text: &'a str,
 }
@@ -90,6 +92,8 @@ struct Parser<'a> {
 impl<'a> Parser<'a> {
     // Advance in the text
     fn next(&mut self) {
+        self.last_end = self.get_token_range().end;
+
         self.current = if !self.tokens.is_empty() {
             Some(self.tokens.remove(0))
         } else {
@@ -198,15 +202,15 @@ impl<'a> Parser<'a> {
                     break Conditional {
                         branches,
                         tail: Some(self.block()?),
-                        range: start..self.get_token_range().start,
+                        range: start..self.last_end,
                     };
                 }
                 _ => {
                     break Conditional {
                         branches,
                         tail: None,
-                        range: start..self.get_token_range().start,
-                    }
+                        range: start..self.last_end,
+                    };
                 }
             })
         })
@@ -226,7 +230,7 @@ impl<'a> Parser<'a> {
             Ok(Branch {
                 condition: self.expression()?,
                 body: self.block()?,
-                range: start..self.get_token_range().start,
+                range: start..self.last_end,
             })
         } else {
             let (name, range) = self.token_report_data();
@@ -265,7 +269,7 @@ impl<'a> Parser<'a> {
         Ok(While {
             condition: self.expression()?,
             body: self.block()?,
-            range: start..self.get_token_range().start,
+            range: start..self.last_end,
         })
     }
 
@@ -421,7 +425,7 @@ impl<'a> Parser<'a> {
                     parameters,
                     return_type,
                     body: self.block()?,
-                    range: start..self.get_token_range().start,
+                    range: start..self.last_end,
                 })
             } else {
                 let (name, range) = self.token_report_data();
@@ -568,7 +572,7 @@ impl<'a> Parser<'a> {
         Ok(Block {
             expressions,
             tail,
-            range: start..self.get_token_range().start,
+            range: start..self.last_end,
         })
     }
 
@@ -589,7 +593,7 @@ impl<'a> Parser<'a> {
                 Ok(Assign {
                     id,
                     value: self.expression()?,
-                    range: start..self.get_token_range().start,
+                    range: start..self.last_end,
                 })
             } else {
                 let (name, range) = self.token_report_data();
@@ -679,7 +683,7 @@ impl<'a> Parser<'a> {
                     id,
                     hint,
                     value: self.expression()?,
-                    range: start..self.get_token_range().start,
+                    range: start..self.last_end,
                 })
             } else {
                 let (name, range) = self.token_report_data();
@@ -804,7 +808,7 @@ impl<'a> Parser<'a> {
                             lexer::Token::Add => Call {
                                 id: lexer::SpanToken(lexer::Token::Id(String::from("add")), range),
                                 parameters: vec![left, right],
-                                range: start..self.get_token_range().start,
+                                range: start..self.last_end,
                             },
                             lexer::Token::Subtract => Call {
                                 id: lexer::SpanToken(
@@ -812,7 +816,7 @@ impl<'a> Parser<'a> {
                                     range,
                                 ),
                                 parameters: vec![left, right],
-                                range: start..self.get_token_range().start,
+                                range: start..self.last_end,
                             },
                             lexer::Token::Multiply => Call {
                                 id: lexer::SpanToken(
@@ -820,7 +824,7 @@ impl<'a> Parser<'a> {
                                     range,
                                 ),
                                 parameters: vec![left, right],
-                                range: start..self.get_token_range().start,
+                                range: start..self.last_end,
                             },
                             lexer::Token::Divide => Call {
                                 id: lexer::SpanToken(
@@ -828,7 +832,7 @@ impl<'a> Parser<'a> {
                                     range,
                                 ),
                                 parameters: vec![left, right],
-                                range: start..self.get_token_range().start,
+                                range: start..self.last_end,
                             },
                             lexer::Token::Modulo => Call {
                                 id: lexer::SpanToken(
@@ -836,7 +840,7 @@ impl<'a> Parser<'a> {
                                     range,
                                 ),
                                 parameters: vec![left, right],
-                                range: start..self.get_token_range().start,
+                                range: start..self.last_end,
                             },
                             lexer::Token::Equal => Call {
                                 id: lexer::SpanToken(
@@ -844,7 +848,7 @@ impl<'a> Parser<'a> {
                                     range,
                                 ),
                                 parameters: vec![left, right],
-                                range: start..self.get_token_range().start,
+                                range: start..self.last_end,
                             },
                             lexer::Token::NotEqual => Call {
                                 id: lexer::SpanToken(
@@ -852,7 +856,7 @@ impl<'a> Parser<'a> {
                                     range,
                                 ),
                                 parameters: vec![left, right],
-                                range: start..self.get_token_range().start,
+                                range: start..self.last_end,
                             },
                             lexer::Token::Larger => Call {
                                 id: lexer::SpanToken(
@@ -860,7 +864,7 @@ impl<'a> Parser<'a> {
                                     range,
                                 ),
                                 parameters: vec![left, right],
-                                range: start..self.get_token_range().start,
+                                range: start..self.last_end,
                             },
                             lexer::Token::LargerEqual => Call {
                                 id: lexer::SpanToken(
@@ -868,7 +872,7 @@ impl<'a> Parser<'a> {
                                     range,
                                 ),
                                 parameters: vec![left, right],
-                                range: start..self.get_token_range().start,
+                                range: start..self.last_end,
                             },
                             lexer::Token::Smaller => Call {
                                 id: lexer::SpanToken(
@@ -876,7 +880,7 @@ impl<'a> Parser<'a> {
                                     range,
                                 ),
                                 parameters: vec![left, right],
-                                range: start..self.get_token_range().start,
+                                range: start..self.last_end,
                             },
                             lexer::Token::SmallerEqual => Call {
                                 id: lexer::SpanToken(
@@ -884,17 +888,17 @@ impl<'a> Parser<'a> {
                                     range,
                                 ),
                                 parameters: vec![left, right],
-                                range: start..self.get_token_range().start,
+                                range: start..self.last_end,
                             },
                             lexer::Token::Or => Call {
                                 id: lexer::SpanToken(lexer::Token::Id(String::from("or")), range),
                                 parameters: vec![left, right],
-                                range: start..self.get_token_range().start,
+                                range: start..self.last_end,
                             },
                             lexer::Token::And => Call {
                                 id: lexer::SpanToken(lexer::Token::Id(String::from("and")), range),
                                 parameters: vec![left, right],
-                                range: start..self.get_token_range().start,
+                                range: start..self.last_end,
                             },
                             _ => panic!("Invalid token as operator"),
                         })
@@ -972,7 +976,7 @@ impl<'a> Parser<'a> {
                 Expression::Call(Call {
                     id,
                     parameters,
-                    range: start..self.get_token_range().start,
+                    range: start..self.last_end,
                 })
             }
             Some(id @ lexer::SpanToken(lexer::Token::Id(_), _)) => Expression::Id(id),
@@ -980,12 +984,12 @@ impl<'a> Parser<'a> {
             Some(lexer::SpanToken(lexer::Token::Not, range)) => Expression::Call(Call {
                 id: lexer::SpanToken(lexer::Token::Id(String::from("not")), range),
                 parameters: vec![self.value()?],
-                range: start..self.get_token_range().start,
+                range: start..self.last_end,
             }),
             Some(lexer::SpanToken(lexer::Token::Subtract, range)) => Expression::Call(Call {
                 id: lexer::SpanToken(lexer::Token::Id(String::from("negate")), range),
                 parameters: vec![self.value()?],
-                range: start..self.get_token_range().start,
+                range: start..self.last_end,
             }),
             Some(lexer::SpanToken(lexer::Token::LeftBracket, _)) => {
                 let result = self.expression()?;
@@ -1040,6 +1044,7 @@ pub fn parse<'a>(
         text,
         tokens,
         current: None,
+        last_end: 0,
     }
     .program()
 }
