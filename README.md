@@ -7,3 +7,5 @@ Bell is a work in progress programming langauge that compiles to MCfunction (Min
 The goal of Bell is to provide a higher level, smarter workflow for developers in MCfunction so they can write more code faster and better. To be able to reason about your program in a higher level, to see the big picture.
 
 Bell is actively developed, but still isn't done. At the current state you **cannot** compile a program with Bell.
+
+*You can currently compile up to MIR though!*
