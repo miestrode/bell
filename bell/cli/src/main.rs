@@ -2,8 +2,8 @@ use std::{fs, io, ops, process, time};
 
 use lang::core::error;
 
-const VERSION: &str = "0.3.1";
-const LEVELS: ops::RangeInclusive<i32> = 1..=3;
+const VERSION: &str = "0.5.0";
+const LEVELS: ops::RangeInclusive<i32> = 1..=4;
 
 // A simple trait, used only for displaying errors
 trait Report {
@@ -80,11 +80,11 @@ impl Report for error::Error<'_> {
                     self.filename,
                     location.start,
                 )
-                .with_message(format!(
-                    "Expected data of type `{}`, got `{}`.",
-                    expected, found
-                ))
-                .with_code(4);
+                    .with_message(format!(
+                        "Expected data of type `{}`, got `{}`.",
+                        expected, found
+                    ))
+                    .with_code(4);
 
                 report = if let Some(because) = because {
                     report
@@ -163,15 +163,15 @@ impl Report for error::Error<'_> {
                     .finish()
                     .eprint((self.filename, ariadne::Source::from(self.text))),
             error::ErrorKind::ParameterCountMismatch { expected_count, got_count, because, got_location, function } => {
-                 let report = ariadne::Report::build(ariadne::ReportKind::Error, self.filename, got_location.start)
+                let report = ariadne::Report::build(ariadne::ReportKind::Error, self.filename, got_location.start)
                     .with_message(format!("Function `{}` expected {} parameter(s), but got {} parameter(s)", function, expected_count, got_count))
                     .with_code(8);
 
                 if let Some(because) = because {
                     report
-                    .with_label(ariadne::Label::new((self.filename, because))
-                        .with_message(format!("Expected all calls to {} to take {} parameter(s) because of this.", function, expected_count))
-                        .with_color(ariadne::Color::Blue))
+                        .with_label(ariadne::Label::new((self.filename, because))
+                            .with_message(format!("Expected all calls to {} to take {} parameter(s) because of this.", function, expected_count))
+                            .with_color(ariadne::Color::Blue))
                         .with_label(ariadne::Label::new((self.filename, got_location))
                             .with_message(format!("But this call to {} gave {} parameter(s).", function, got_count))
                             .with_color(ariadne::Color::Red))
@@ -208,7 +208,7 @@ fn main() {
             .value_name("INT")
             .takes_value(true)
             .required(false)
-            .default_value("3")
+            .default_value("4")
             .help("The level of compilation. Compilation levels in ascending order are: lexing, parsing and type checking."))
         .get_matches();
 
@@ -250,7 +250,7 @@ fn main() {
         );
 
         process::exit(exitcode::DATAERR);
-    }) + " "; // Adds an extra whitespace so error rendering works flawlessly
+    });
 
     let now = time::Instant::now();
     let result = lang::compile(file, &text, level);
@@ -261,7 +261,8 @@ fn main() {
         match level {
             1 => "lexing",
             2 => "parsing",
-            3 => "analysing",
+            3 => "type checking",
+            4 => "lowering",
             _ => panic!("Level is invalid, but should have already been checked"), // Internal error
         },
         ariadne::Color::Blue.paint(&file),
@@ -269,18 +270,23 @@ fn main() {
     );
 
     process::exit(match result {
-        Ok(value @ lang::CompileResult::LexResult(_)) => {
-            println!("{:#?}", value);
+        Ok(lang::CompileResult::LexResult(tokens)) => {
+            println!("{:#?}", tokens);
 
             exitcode::OK
         }
-        Ok(value @ lang::CompileResult::ParseResult(_)) => {
-            println!("{:#?}", value);
+        Ok(lang::CompileResult::ParseResult(program)) => {
+            println!("{:#?}", program);
 
             exitcode::OK
         }
-        Ok(value @ lang::CompileResult::CheckResult(_)) => {
-            println!("{:#?}", value);
+        Ok(lang::CompileResult::CheckResult(typed_program)) => {
+            println!("{:#?}", typed_program);
+
+            exitcode::OK
+        }
+        Ok(lang::CompileResult::MIRResult(mir_program)) => {
+            println!("{:#?}", mir_program);
 
             exitcode::OK
         }
