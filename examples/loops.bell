@@ -1,7 +1,7 @@
 // Print out all even numbers from 100 to 1
 fn main() {
 	let current = 100;
-	
+
 	while current != 0 && current % 2 == 0 {
 		println(current);
 	}
