@@ -1,0 +1,12 @@
+fn apples_to_dollars(count: int) {
+    if count < 25 {
+        count * 4
+    } else {
+        count * 2 + 5
+    }
+}
+
+fn main() {
+    println(apples_to_dollars(22));
+    println(apples_to_dollars(64));
+}
