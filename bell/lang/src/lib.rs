@@ -1,17 +1,19 @@
-use frontend::{lexer, mir, parser, type_checker};
+use backend::{datapack, mir};
+use frontend::{lexer, parser, type_checker};
 
 use crate::core::error;
 
+mod backend;
 pub mod core;
 mod frontend;
 
 // The result of each compilation level
-#[derive(Debug)]
 pub enum CompileResult {
     LexResult(Vec<lexer::SpanToken>),
     ParseResult(parser::Program),
     CheckResult(parser::Program),
     MIRResult(mir::Program),
+    Result((datapack::Datapack, Option<mir::Id>)),
 }
 
 // Compile a file up to some step
@@ -32,7 +34,11 @@ pub fn compile<'a>(
             if level > 3 {
                 let mir_program = mir::lower(typed_program);
 
-                Ok(CompileResult::MIRResult(mir_program))
+                if level > 4 {
+                    Ok(CompileResult::Result(datapack::generate_code(mir_program)))
+                } else {
+                    Ok(CompileResult::MIRResult(mir_program))
+                }
             } else {
                 Ok(CompileResult::CheckResult(typed_program))
             }
@@ -53,8 +59,8 @@ mod tests {
     use crate::core::error;
 
     #[test]
-    fn tokenize_no_panic() {
-        crate::compile_text(
+    fn tokenize() {
+        assert!(crate::compile_text(
             r"
             fn factorial(number: int) -> int {
                 let product = number;
@@ -70,12 +76,12 @@ mod tests {
             ",
             1,
         )
-        .unwrap();
+        .is_ok());
     }
 
     #[test]
-    fn comments_no_panic() {
-        crate::compile_text(
+    fn comments() {
+        assert!(crate::compile_text(
             r"
             // Single line comment
             
@@ -98,14 +104,14 @@ mod tests {
             ",
             1,
         )
-        .unwrap();
+        .is_ok());
     }
 
     #[test]
     fn invalid_character() {
         assert!(matches!(
             crate::compile_text("@miestrode", 1).unwrap_err().error,
-            error::Data::InvalidCharacter { .. }
+            error::ErrorKind::InvalidCharacter { .. }
         ));
     }
 
@@ -115,13 +121,13 @@ mod tests {
             crate::compile_text("/* I am unterminated!", 1)
                 .unwrap_err()
                 .error,
-            error::Data::UnterminatedBlockComment { .. }
+            error::ErrorKind::UnterminatedBlockComment { .. }
         ));
     }
 
     #[test]
-    fn parse_no_panic() {
-        crate::compile_text(
+    fn parse() {
+        assert!(crate::compile_text(
             r"
         fn is_prime(num: int) -> bool {
             let check = 2;
@@ -142,19 +148,21 @@ mod tests {
         }
         ",
             2,
-        );
+        )
+        .is_ok());
     }
 
     #[test]
-    fn check_no_panic() {
-        crate::compile_text(
+    fn check() {
+        assert!(crate::compile_text(
             r"
         fn main() {
             let x = 2;
         }
         ",
             3,
-        );
+        )
+        .is_ok());
     }
 
     #[test]
@@ -165,12 +173,13 @@ mod tests {
         fn main() {
             x = 0;
         }
-        "
+        ",
+                3
             ),
-            error::Error {
+            Err(error::Error {
                 error: error::ErrorKind::UndeclaredSymbol { .. },
                 ..
-            }
+            })
         ))
     }
 
@@ -189,16 +198,16 @@ mod tests {
         ",
                 3
             ),
-            error::Error {
-                error: error::ErrorKind::UndeclaredSymbol { .. },
+            Err(error::Error {
+                error: error::ErrorKind::DataTypeMismatch { .. },
                 ..
-            }
+            })
         ));
     }
 
     #[test]
-    fn lower_no_panic() {
-        crate::compile_text(
+    fn lower() {
+        assert!(crate::compile_text(
             r"
             fn factorial(number: int) -> int {
                 let product = number;
@@ -214,6 +223,19 @@ mod tests {
             ",
             4,
         )
-        .unwrap();
+        .is_ok());
+    }
+
+    #[test]
+    fn conditions() {
+        assert!(crate::compile_text(
+            r"
+            fn is_four(number: int) {
+                number == 4
+            }
+            ",
+            4,
+        )
+        .is_ok());
     }
 }

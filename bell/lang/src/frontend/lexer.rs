@@ -87,18 +87,21 @@ fn skip_block_comment(lexer: &mut logos::Lexer<Token>, mut depth: i32) -> logos:
 
     // Iterate over the indices so we can get multiple characters from the text
     while index < remainder.len() {
-        // It looks ahead to see if a block comment terminator is present
         match remainder.get(index..(index + 2)) {
-            Some("*/") => depth -= 1,
+            Some("*/") => {
+                depth -= 1;
+
+                // Notice that the depth can only be zero when this arm is visited. So we save some checks
+                if depth == 0 {
+                    // Update the lexers position in the text. We add two to it since we aren't actually visiting the part of the text we just checked
+                    // Rather we are "peeking at it"
+                    lexer.bump(index + 2);
+
+                    return logos::Filter::Skip;
+                }
+            }
             Some("/*") => depth += 1,
             _ => (),
-        }
-
-        if depth == 0 {
-            // Update the lexers position in the text
-            lexer.bump(index + 2);
-
-            return logos::Filter::Skip;
         }
 
         index += 1;
@@ -107,7 +110,7 @@ fn skip_block_comment(lexer: &mut logos::Lexer<Token>, mut depth: i32) -> logos:
     // Update the lexers position in the text
     lexer.bump(index);
 
-    // If we reach this point a block comment has not been terminated
+    // If we reach this point some block comment has not been terminated
     logos::Filter::Emit(())
 }
 

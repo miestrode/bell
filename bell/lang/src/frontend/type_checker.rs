@@ -544,7 +544,7 @@ impl<'a> TypeChecker<'a> {
             if &&inferred_type == data_type {
                 Ok(create_identifier("unit", assign.range.clone()))
             } else {
-                let data_type = util::extract_id(data_type.clone().clone());
+                let data_type = util::extract_id((*data_type).clone());
                 let inferred_type = util::extract_id(inferred_type);
 
                 Err(error::Error {

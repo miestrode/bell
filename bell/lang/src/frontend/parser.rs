@@ -149,7 +149,7 @@ impl<'a> Parser<'a> {
                     lexer::Token::Int(_) => "integer",
                     lexer::Token::Bool(_) => "boolean",
                     lexer::Token::Id(_) => "identifier",
-                    _ => panic!("Found error tokens on parsing tokens."),
+                    _ => unreachable!(),
                 },
                 range,
             )
@@ -903,7 +903,7 @@ impl<'a> Parser<'a> {
                                 parameters: vec![left, right],
                                 range: start..self.last_end,
                             },
-                            _ => panic!("Invalid token as operator"),
+                            _ => unreachable!(),
                         })
                     }
                 }
