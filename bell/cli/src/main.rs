@@ -9,6 +9,7 @@ struct CompileContext<'a> {
     level: i32,
     file: &'a str, // Might switch to multiple files to allow modules in the future
     export_path: Option<&'a str>,
+    overwrite: bool,
     run_on_reload: bool,
     description: &'a str,
 }
@@ -197,7 +198,6 @@ impl Report for error::Error<'_> {
 }
 
 fn main() {
-    // todo: Allow for more complex configurations by sending data directly to the compiler in the form of a compilation context
     let matches = clap::App::new("The Bell Compiler CLI")
         .version(VERSION)
         .author("Yoav G. <miestrode@gmail.com>")
@@ -242,6 +242,13 @@ fn main() {
             .takes_value(false)
             .required(false)
             .help("When on the program will run after every time `/reload` is used."))
+        .arg(clap::Arg::with_name("overwrite")
+            .short("o")
+            .long("overwrite")
+            .takes_value(false)
+            .required(false)
+            .requires("export")
+            .help("Overwrite if the export paths folder already exists. Note that this completely removes the file and ALL of it's contents. Use carefully."))
         .get_matches();
 
     let context = CompileContext {
@@ -262,6 +269,7 @@ fn main() {
         // Unwrap can be used, since Clap makes sure the file is specified
         file: matches.value_of("file").unwrap(),
         export_path: matches.value_of("export"),
+        overwrite: matches.is_present("overwrite"),
         run_on_reload: matches.is_present("reload"),
         // Unwrap can be used, since Clap makes sure the description is specified
         description: matches.value_of("description").unwrap(),
@@ -333,14 +341,12 @@ fn main() {
                 // Create the directory the datapack will be placed in
                 match fs::create_dir(export_path) {
                     Ok(_) => (),
-                    Err(error) => {
-                        if let Some(17) = error.raw_os_error() {
-                            // Try creating it again
-                            fs::remove_dir_all(export_path).expect("Could not create datapack");
-
-                            fs::create_dir(export_path).expect("Could not create datapack");
-                        }
+                    Err(error) if Some(17) == error.raw_os_error() && context.overwrite => {
+                        // Try creating it again
+                        fs::remove_dir(export_path).unwrap();
+                        fs::create_dir(export_path).unwrap();
                     }
+                    Err(error) => panic!("{}", error),
                 }
 
                 fs::write(
@@ -350,15 +356,14 @@ fn main() {
                         context.description
                     ),
                 )
-                .expect("Could not create datapack");
+                .unwrap();
 
                 // Create the directories for code storage and configuration
-                fs::create_dir_all(format!("{}/data/project/functions", export_path))
-                    .expect("Could not create datapack");
+                fs::create_dir_all(format!("{}/data/project/functions", export_path)).unwrap();
                 fs::create_dir_all(format!("{}/data/minecraft/tags/functions", export_path))
-                    .expect("Could not create datapack");
+                    .unwrap();
 
-                // Tell minecraft if our code should run when we do "/reload"
+                // Tell Minecraft if our code should run when we do "/reload"
                 fs::write(
                     format!("{}/data/minecraft/tags/functions/load.json", export_path),
                     if program.1.is_some() && context.run_on_reload {
@@ -367,7 +372,7 @@ fn main() {
                         "{\"values\": []}"
                     },
                 )
-                .expect("Could not create datapack");
+                .unwrap();
 
                 // Export all the files
                 for function in program.0 .0 {
@@ -378,7 +383,7 @@ fn main() {
                         ),
                         function.to_string(),
                     )
-                    .expect("Could not create datapack");
+                    .unwrap();
                 }
             } else {
                 println!("{}", program.0.to_string());

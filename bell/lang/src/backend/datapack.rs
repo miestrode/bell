@@ -85,7 +85,7 @@ impl ToString for Command {
     fn to_string(&self) -> String {
         match self {
             Command::ScoreboardSet(set, value) => {
-                format!("scoreboard players set _{} bell {}", set, value)
+                format!("scoreboard players set #{} bell {}", set, value)
             }
             Command::ScoreboardOperation {
                 target,
@@ -96,15 +96,15 @@ impl ToString for Command {
                 ScoreboardOperation::Set
                 | ScoreboardOperation::SetIfGreater
                 | ScoreboardOperation::SetIfLesser => format!(
-                    "scoreboard players operation _{} bell {} _{} bell",
+                    "scoreboard players operation #{} bell {} #{} bell",
                     left,
                     operation.to_string(),
                     right
                 ),
                 _ => format!(
-                    "scoreboard players operation #t bell = _{} bell\n\
-                scoreboard players operation #t bell {} _{} bell\n\
-                scoreboard players operation _{} bell = #t bell",
+                    "scoreboard players operation #t bell = #{} bell\n\
+                scoreboard players operation #t bell {} #{} bell\n\
+                scoreboard players operation #{} bell = #t bell",
                     left,
                     operation.to_string(),
                     right,
@@ -117,7 +117,7 @@ impl ToString for Command {
                 right,
                 operation,
             } => format!(
-                "execute store result score _{} bell {} score _{} bell {} _{} bell",
+                "execute store result score #{} bell {} score #{} bell {} #{} bell",
                 target,
                 if operation == &ScoreboardComparison::NotEqual {
                     "unless"
@@ -130,19 +130,19 @@ impl ToString for Command {
             ),
             Command::Call(block_id) => format!("function project:_{}", block_id),
             Command::CallIfTrue { block, check } => format!(
-                "execute if score _{} bell matches 1 run function project:_{}",
+                "execute if score #{} bell matches 1 run function project:_{}",
                 check, block,
             ),
             Command::CallIfFalse { block, check } => format!(
-                "execute if score _{} bell matches 0 run function project:_{}",
+                "execute if score #{} bell matches 0 run function project:_{}",
                 check, block
             ),
             Command::Not(target, id) => format!(
-                "execute store result score _{} bell unless score _{} bell matches 1",
+                "execute store result score #{} bell unless score #{} bell matches 1",
                 target, id
             ),
             Command::Print(id) => format!(
-                "tellraw @a {{\"score\": {{\"name\": \"_{}\", \"objective\": \"bell\"}}}}",
+                "tellraw @a {{\"score\": {{\"name\": \"#{}\", \"objective\": \"bell\"}}}}",
                 id
             ),
             Command::Initialize => String::from(
@@ -329,11 +329,6 @@ impl compiler_backend::Backend for Datapack {
                                                 blocks.len() + (tail.is_some() as usize),
                                             );
 
-                                            /*
-                                            You could modify a value used in a condition while in some branch.
-                                            The long term solution really is to switch to a better model of basic blocks as actual control flow objects.
-                                            So right now this is a todo
-                                            */
                                             for (check, block_id) in
                                                 check.iter().zip(blocks.into_iter())
                                             {
