@@ -4,5 +4,7 @@ fn main() {
 
 	while current != 0 && current % 2 == 0 {
 		println(current);
+		
+		current = current - 1;
 	}
 }
