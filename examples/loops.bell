@@ -2,8 +2,10 @@
 fn main() {
 	let current = 100;
 
-	while current != 0 && current % 2 == 0 {
-		println(current);
+	while current > 0 {
+		if current % 2 == 0 {
+			println(current);
+		}
 		
 		current = current - 1;
 	}
