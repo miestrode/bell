@@ -1,5 +1,5 @@
 <p align="center">
-    <img src="assets/Bell logo + wordmark (white).svg" width="199" height="71">
+    <img src="assets/Bell logo + wordmark.svg" width="199" height="71">
 </p>
 
 Bell is a work in progress programming langauge that compiles to MCfunction (Minecraft's language for creating datapacks).
