@@ -2,7 +2,7 @@
     <img src="assets/Bell logo + wordmark.svg" width="199" height="71">
 </p>
 
-Bell is a work in progress programming langauge that compiles to MCfunction (Minecraft's language for creating datapacks).
+Bell is a work in progress programming language that compiles to MCfunction (Minecraft's language for creating datapacks).
 
 It provides a higher level, smarter workflow for developers writing MCfunction so they can write more code faster, better and in less space. To be able to reason about your code and make changes easily. No more manically going around the datapack updating scoreboard player names or spending a full day translating a complex
 formula into MCfunction code.
