@@ -18,12 +18,18 @@ It is possible for condition branches to effect other ones. I.E:
 if x == 3 {
     println(x);
     x = x + 1;
-} else if x == 7 {
-    println(x);
 } else if x == 5 {
+    println(x);
+} else if x == 4 {
     println(x);   
 }
 ```
+will print:
+```
+3
+4
+```
+
 A fix will arrive once I redo Bell's MIR. The gist of the fix is to lower `if-else-if-else` into `if-else` like so:
 ```
 if x == 2 {
