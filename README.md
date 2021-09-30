@@ -11,3 +11,28 @@ formula into MCfunction code.
 Bell has finished it's first release. The goal of this release was to provide a simplistic, working version of Bell, to get something out there. There are some parts I am really proud of, others less.
 
 I've learned a lot while developing this release. And there are so many parts I'd like to work on now. Bell will be getting a rewrite in the near future so that it has more features, better and original syntax and produces more optimized code.
+
+## Known bugs
+It is possible for condition branches to effect other ones. I.E:
+```
+if x == 3 {
+    println(x);
+    x = x + 1;
+} else if x == 7 {
+    println(x);
+} else if x == 5 {
+    println(x);   
+}
+```
+A fix will arrive once I redo Bell's MIR. The gist of the fix is to lower `if-else-if-else` into `if-else` like so:
+```
+if x == 2 {
+    // Snip!
+} else {
+    if x == 3 {
+        // Snip!
+    } else {
+        // Snip!
+    }
+}
+```
