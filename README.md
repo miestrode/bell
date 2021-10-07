@@ -29,6 +29,8 @@ will print:
 3
 4
 ```
+This is actually a common bug in many compilers like this (such as Debris and WASMcraft).
+
 
 A fix will arrive once I redo Bell's MIR. The gist of the fix is to lower `if-else-if-else` into `if-else` like so:
 ```
@@ -42,3 +44,4 @@ if x == 2 {
     }
 }
 ```
+In more detail, the actual fix involves tracking which branch was taken using a special variable.
