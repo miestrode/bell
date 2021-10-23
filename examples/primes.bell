@@ -20,5 +20,7 @@ fn main() {
         if is_prime(current) {
             println(current);
         }
+        
+        current = current + 1;
     }
 }
