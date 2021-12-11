@@ -5,55 +5,155 @@
 
 ---
 
-Bell is a programming language that is designed to be readable, expressive and high-level (in comparison to MCfunction).
-Bell's compiler is created to be efficient, error tolerant and generate code that runs **fast**.
+# Background
+Running code in Minecraft: Java Edition (abberviated by MJE) is done using a language called MCfunction.
 
-Bell is high-level compared to MCfunction, and features many advanced features not seen in it. Such features include:
+MCfunction code, as it's name is made up of a bunch of differents "functions". Although they are callled functions, they're really more like
+procedures in that they take no parameters and don't return anything.
+
+Every function is made up of a list of "commands". A typical command may look like this:
+```mcfunction
+scoreboard objectives add foo dummy
+```
+
+Unfortunately, MCfunction is verbose: It requires many lines just to do something as simple as multipling and adding 4 numbers. Furthermore, it lacks many programming constructs essential to doing useful calculations.
+
+So why should we spend time writing so many lines for what could should have been done in little? It's time to go beyond MCfunction.
+
+# Introducing Bell!
+Bell is a programming language that is readable, expressive and concise.
+Additionaly, it's compiler is fast and error tolerant.
+
+Heres a program written in `MCfunction` that prints the factorial of 10:
+
+> at `program:init`
+> ```mcfunction
+> scoreboard objectives add variables dummy
+> ```
+>
+> at `program:main`
+> ```mcfunction
+> scoreboard players set current variables 10
+> scoreboard players set product variables 1
+> function program:main_calc
+> tellraw @a {"score": {"name": "product", "objective": "variables"}}
+> ```
+>
+> at `program:main_calc`
+> ```mcfunction
+> scoreboard players operation product variables *= current variables
+> scoreboard players remove variables 1
+> execute if score current variables matches 2.. run function program:main_calc
+> ```
+
+Now heres an equivalent Bell program:
+
+Bell offers features many advanced features not seen in MCfunction. Such features include:
 * Expression oriented constructs
 * Conditionals
 * Parameterized functions
 * Structures (Classes)
 * Loops
 * Type inference
-* Strings*
+* Strings[^1]
 
-*Strings are compile time values, so they don't offer all of the flexibility of values like integers for example.
+[^1]: Strings are compile time values, so they don't offer all of the flexibility of values like integers for example.
 
-## Progress
-Bell has finished it's first release. The goal of this release was to provide a simplistic, working version of Bell, to get something out there. There are some parts I am really proud of, others less.
+# A taste of Bell
+Heres example of Bell's high-level features. The following a MCfunction program prints 10 factorial:
 
-I've learned a lot while developing this release. And there are so many parts I'd like to work on now. Bell will be getting a rewrite in the near future so that it has more features, better and original syntax and produces more optimized code.
+> at `program:init`
+> ```mcfunction
+> scoreboard objectives add variables dummy
+> ```
+>
+> at `program:main`
+> ```mcfunction
+> scoreboard players set current variables 10
+> scoreboard players set product variables 1
+> function program:main_calc
+> tellraw @a {"score": {"name": "product", "objective": "variables"}}
+> ```
+>
+> at `program:main_calc`
+> ```mcfunction
+> scoreboard players operation product variables *= current variables
+> scoreboard players remove current variables 1
+> execute if score current variables matches 2.. run function program:main_calc
+> ```
 
-## Known bugs
-It is possible for condition branches to effect other ones. I.E:
-```
-if x == 3 {
-    println(x);
-    x = x + 1;
-} else if x == 5 {
-    println(x);
-} else if x == 4 {
-    println(x);   
+Heres it's equivalent Bell program:
+> ```go
+> func factorial(number) {
+>    var product = 1;
+>     
+>    loop {
+>        if number == 0 {
+>            break product
+>        }
+> 
+>        product *= number;
+>        number -= 1;
+>    }
+> }
+> 
+> func main() {
+>    println(factorial(10))
+> }
+>```
+
+As previously mentioned, Bell can also do other interesting things, like creating structures.
+```go
+struct Car {
+    name,
+    color,
+    kph
+}
+
+func main() {
+    var my_car = Car {
+        name: "Cary McCarface",
+        color: "Red",
+        kph: 123
+    };
+    
+    my_car.color = "Blue"
+    println("My car's color is now {my_car.color}")
 }
 ```
-will print:
-```
-3
-4
-```
-This is actually a common bug in many compilers like this (such as Debris and WASMcraft).
 
-
-A fix will arrive once I redo Bell's MIR. The gist of the fix is to lower `if-else-if-else` into `if-else` like so:
+Bell also supports basic interoperability with MCfunction using the `mcfunction` function:
+```go
+func main() {
+    mcfunction("say Hello from Minecraft!")
+}
 ```
-if x == 2 {
-    // Snip!
-} else {
-    if x == 3 {
-        // Snip!
-    } else {
-        // Snip!
+
+# Getting started
+Currently, the only way to run Bell is by building it from source. Make sure you have the Rust and Cargo installed.
+
+Then, to build Bell you can just run this command (inside the installed directory):
+```bash
+cargo build --release
+```
+
+an executable should now be seen inside the `target` directory. Now run it with the `--help` argument, and start writing code! 
+
+# Contributing
+For minor fixes, feel free to open a pull request. For more major ones, please open an issue first to explain what your would like to change.
+
+# Known bugs
+A branch in one conditional can currently effect others. For example:
+```go
+func main() {
+    var x = 0;
+    
+    if x == 0 {
+        x += 1;
+    } else if x == 1 {
+        println(x); // This prints! >:(
     }
 }
 ```
-In more detail, the actual fix involves tracking which branch was taken using a special variable.
+
+The fix to this will drop when the new `v2` version of Bell is finished.
