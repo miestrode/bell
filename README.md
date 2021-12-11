@@ -1,11 +1,23 @@
 <p align="center">
-    <img src="assets/Bell logo + wordmark.svg" width="199" height="71">
+    <img src="assets/Bell logo + wordmark.svg#gh-light-mode-only" width="497" height="177">
+    <img src="assets/Bell logo + wordmark (white).svg#gh-dark-mode-only" width="497" height="177">
 </p>
 
-Bell is a work in progress programming language that compiles to MCfunction (Minecraft's language for creating datapacks).
+---
 
-It provides a higher level, smarter workflow for developers writing MCfunction so they can write more code faster, better and in less space. To be able to reason about your code and make changes easily. No more manically going around the datapack updating scoreboard player names or spending a full day translating a complex
-formula into MCfunction code.
+Bell is a programming language that is designed to be readable, expressive and high-level (in comparison to MCfunction).
+Bell's compiler is created to be efficient, error tolerant and generate code that runs **fast**.
+
+Bell is high-level compared to MCfunction, and features many advanced features not seen in it. Such features include:
+* Expression oriented constructs
+* Conditionals
+* Parameterized functions
+* Structures (Classes)
+* Loops
+* Type inference
+* Strings*
+
+*Strings are compile time values, so they don't offer all of the flexibility of values like integers for example.
 
 ## Progress
 Bell has finished it's first release. The goal of this release was to provide a simplistic, working version of Bell, to get something out there. There are some parts I am really proud of, others less.
