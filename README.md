@@ -28,30 +28,6 @@ So why should we spend time writing so many lines for what could should have bee
 Bell is a programming language that is readable, expressive and concise.
 Additionaly, it's compiler is fast and error tolerant.
 
-Heres a program written in `MCfunction` that prints the factorial of 10:
-
-> at `program:init`
-> ```mcfunction
-> scoreboard objectives add variables dummy
-> ```
->
-> at `program:main`
-> ```mcfunction
-> scoreboard players set current variables 10
-> scoreboard players set product variables 1
-> function program:main_calc
-> tellraw @a {"score": {"name": "product", "objective": "variables"}}
-> ```
->
-> at `program:main_calc`
-> ```mcfunction
-> scoreboard players operation product variables *= current variables
-> scoreboard players remove variables 1
-> execute if score current variables matches 2.. run function program:main_calc
-> ```
-
-Now heres an equivalent Bell program:
-
 Bell offers features many advanced features not seen in MCfunction. Such features include:
 * Expression oriented constructs
 * Conditionals
