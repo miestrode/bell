@@ -120,7 +120,7 @@ cargo build --release
 an executable should now be seen inside the `target` directory. Now run it with the `--help` argument, and start writing code! 
 
 # Contributing
-For minor fixes, feel free to open a pull request. For more major ones, please open an issue first to explain what your would like to change.
+For minor fixes, feel free to open a pull request. For more major ones, please open an issue first to explain what you would like to change.
 
 # Known bugs
 A branch in one conditional can currently effect others. For example:
