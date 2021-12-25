@@ -1,241 +1,105 @@
-use backend::{datapack, mir};
-use frontend::{lexer, parser, type_checker};
+use crate::core::error::Error;
+use crate::core::span::SourceMap;
+use crate::core::span::Span;
+use std::borrow::Cow;
 
-use crate::core::error;
+use crate::core::ast;
+use crate::middle_end::{checker, hir};
 
-mod backend;
+use crate::core::file::Entry;
+use camino::Utf8PathBuf;
+use internment::Intern;
+use middle_end::checker::TypeInfo;
+use std::fs;
+use std::path::PathBuf;
+
 pub mod core;
-mod frontend;
+pub mod front_end;
+pub mod middle_end;
 
-// The result of each compilation level
-pub enum CompileResult {
-    LexResult(Vec<lexer::SpanToken>),
-    ParseResult(parser::Program),
-    CheckResult(parser::Program),
-    MIRResult(mir::Program),
-    Result((datapack::Datapack, Option<mir::Id>)),
+#[derive(Copy, Clone)]
+pub enum OptimizationLevel {
+    Debug,
+    Release,
 }
 
-// Compile a file up to some step
-pub fn compile<'a>(
-    filename: &'a str,
-    text: &'a str,
-    level: i32,
-) -> Result<CompileResult, error::Error<'a>> {
-    let tokens = lexer::tokenize(filename, text)?;
+pub struct CompileErrors {
+    pub errors: Vec<Error>,
+    pub sources: SourceMap,
+}
 
-    // Fall-through sadly isn't possible without some extra work
-    if level > 1 {
-        let program = parser::parse(filename, text, tokens)?;
+#[allow(unused)]
+pub fn compile(
+    path: PathBuf,
+    optimizations: OptimizationLevel,
+) -> Result<Vec<(TypeInfo, Span)>, CompileErrors> {
+    let mut sources = SourceMap::new();
 
-        if level > 2 {
-            let typed_program = type_checker::check(filename, text, program)?;
-
-            if level > 3 {
-                let mir_program = mir::lower(typed_program);
-
-                if level > 4 {
-                    Ok(CompileResult::Result(datapack::generate_code(mir_program)))
-                } else {
-                    Ok(CompileResult::MIRResult(mir_program))
-                }
-            } else {
-                Ok(CompileResult::CheckResult(typed_program))
+    let (module, errors) = if path.is_file() {
+        let path = match Utf8PathBuf::from_path_buf(path) {
+            Ok(path) => path,
+            Err(path) => {
+                return Err(CompileErrors {
+                    errors: vec![Error::Basic(format!(
+                        "the path {} is not encoded in UTF-8",
+                        path.to_string_lossy()
+                    ))],
+                    sources,
+                });
             }
+        };
+
+        ast::Module::from(
+            Entry::File {
+                contents: match fs::read_to_string(&path) {
+                    Ok(contents) => contents,
+                    Err(error) => {
+                        return Err(CompileErrors {
+                            errors: vec![Error::IO {
+                                error,
+                                action: Cow::from(format!("read file {}", path)),
+                            }],
+                            sources,
+                        });
+                    }
+                },
+                path: Intern::new(path),
+            },
+            &mut sources,
+        )
+    } else {
+        let result = Entry::new(match Utf8PathBuf::from_path_buf(path) {
+            Ok(path) => path,
+            Err(path) => {
+                return Err(CompileErrors {
+                    errors: vec![Error::Basic(format!(
+                        "the path {} is not encoded in UTF-8",
+                        path.to_string_lossy()
+                    ))],
+                    sources,
+                });
+            }
+        });
+
+        ast::Module::from(
+            match result {
+                Ok(entry) => entry,
+                Err(errors) => return Err(CompileErrors { errors, sources }),
+            },
+            &mut sources,
+        )
+    };
+
+    // TODO: Error recovery.
+    if errors.is_empty() {
+        let (module, errors) = hir::to_hir(module.unwrap());
+
+        if errors.is_empty() {
+            checker::check(module).map_err(|errors| CompileErrors { errors, sources })
         } else {
-            Ok(CompileResult::ParseResult(program))
+            Err(CompileErrors { errors, sources })
         }
     } else {
-        Ok(CompileResult::LexResult(tokens))
-    }
-}
-
-pub fn compile_text(text: &str, level: i32) -> Result<CompileResult, error::Error> {
-    compile("<unknown>", text, level)
-}
-
-#[cfg(test)]
-mod tests {
-    use crate::core::error;
-
-    #[test]
-    fn tokenize() {
-        assert!(crate::compile_text(
-            r"
-            fn factorial(number: int) -> int {
-                let product = number;
-
-                while number > 1 {
-                    product = product * number;
-
-                    number = number - 1;
-                }
-
-                product
-            }
-            ",
-            1,
-        )
-        .is_ok());
-    }
-
-    #[test]
-    fn comments() {
-        assert!(crate::compile_text(
-            r"
-            // Single line comment
-            
-            /* Block comment */
-            
-            /*
-            Multiple line
-            block comment
-            */
-            
-            /*
-            Nested comments!
-            
-            /*
-            I am nested
-            */
-            
-            more text
-            */
-            ",
-            1,
-        )
-        .is_ok());
-    }
-
-    #[test]
-    fn invalid_character() {
-        assert!(matches!(
-            crate::compile_text("@miestrode", 1).unwrap_err().error,
-            error::ErrorKind::InvalidCharacter { .. }
-        ));
-    }
-
-    #[test]
-    fn unterminated_comment() {
-        assert!(matches!(
-            crate::compile_text("/* I am unterminated!", 1)
-                .unwrap_err()
-                .error,
-            error::ErrorKind::UnterminatedBlockComment { .. }
-        ));
-    }
-
-    #[test]
-    fn parse() {
-        assert!(crate::compile_text(
-            r"
-        fn is_prime(num: int) -> bool {
-            let check = 2;
-            let is_prime = false;
-
-            // Cannot do early return yet so this is less efficient
-            while check < num {
-                if num % check == 0 {
-                    is_prime = true;
-                }
-            }
-
-        is_prime
-        }
-
-        fn main() {
-            println(is_prime(100));
-        }
-        ",
-            2,
-        )
-        .is_ok());
-    }
-
-    #[test]
-    fn check() {
-        assert!(crate::compile_text(
-            r"
-        fn main() {
-            let x = 2;
-        }
-        ",
-            3,
-        )
-        .is_ok());
-    }
-
-    #[test]
-    fn undeclared_variable() {
-        assert!(matches!(
-            crate::compile_text(
-                r"
-        fn main() {
-            x = 0;
-        }
-        ",
-                3
-            ),
-            Err(error::Error {
-                error: error::ErrorKind::UndeclaredSymbol { .. },
-                ..
-            })
-        ))
-    }
-
-    #[test]
-    fn type_mismatch() {
-        assert!(matches!(
-            crate::compile_text(
-                r"
-        fn main() {
-            if true {
-                1
-            } else {
-                true
-            }
-        }
-        ",
-                3
-            ),
-            Err(error::Error {
-                error: error::ErrorKind::DataTypeMismatch { .. },
-                ..
-            })
-        ));
-    }
-
-    #[test]
-    fn lower() {
-        assert!(crate::compile_text(
-            r"
-            fn factorial(number: int) -> int {
-                let product = number;
-
-                while number > 1 {
-                    product = product * number;
-
-                    number = number - 1;
-                }
-
-                product
-            }
-            ",
-            4,
-        )
-        .is_ok());
-    }
-
-    #[test]
-    fn conditions() {
-        assert!(crate::compile_text(
-            r"
-            fn is_four(number: int) {
-                number == 4
-            }
-            ",
-            4,
-        )
-        .is_ok());
+        Err(CompileErrors { errors, sources })
     }
 }
