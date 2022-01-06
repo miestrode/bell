@@ -20,9 +20,9 @@ Every function is made up of a list of "commands". A typical command may look li
 scoreboard objectives add foo dummy
 ```
 
-Unfortunately, MCfunction is verbose: It requires many lines just to do something as simple as multipling and adding 4 numbers. Furthermore, it lacks many programming constructs essential to doing useful calculations.
+Unfortunately, MCfunction is verbose: It requires many lines just to do something simple things, kind of like Assembly languages.
 
-So why should we spend time writing so many lines for what could should have been done in little? It's time to go beyond MCfunction.
+So just as most modern software is built using high-level programming languages, I believe it's time we go beyond MCfunction.
 
 # Introducing Bell!
 Bell is a programming language that is readable, expressive and concise.
