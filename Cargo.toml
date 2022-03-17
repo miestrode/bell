@@ -1,6 +1,2 @@
 [workspace]
 members = ["cli", "lang"]
-
-[dependencies]
-camino = "1.0.5"
-internment = "0.6.0"
