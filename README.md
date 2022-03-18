@@ -3,9 +3,9 @@
     <img src="assets/Bell logo + wordmark (white).svg#gh-dark-mode-only" width="497" height="177">
 </p>
 
-<h3 align="center">
+<h4 align="center">
     :warning:This project is actively being worked upon. It may not compile and some features will be missing!:warning:
-</h3>
+</h4>
 
 ---
 
