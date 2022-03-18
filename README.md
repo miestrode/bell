@@ -4,136 +4,116 @@
 </p>
 
 <h2 align="center">
-    :warning:This project is actively being worked on in another branch. Some features are missing!:warning:
+    :warning:This project is actively being worked upon. It may not compile and some features will be missing!:warning:
 </h2>
 
 ---
 
-# Background
-Running code in Minecraft: Java Edition (abberviated by MJE) is done using a language called MCfunction.
+*If you are looking for a page explaining the motivation behind this project, please go to [this](/WHY.md) page.*
 
-MCfunction code, as it's name is made up of a bunch of differents "functions". Although they are callled functions, they're really more like
-procedures in that they take no parameters and don't return anything.
+# Hello, Bell!
+Bell is a programming language that compiles down to datapacks (MCfunction).
+It offers a rich user experience which is supported by it's advanced and user-friendly compiler, and it's high level features.
 
-Every function is made up of a list of "commands". A typical command may look like this:
-```mcfunction
-scoreboard objectives add foo dummy
-```
+# Why should I use bell?
+By using Bell, you will be able to productively create programs that run in Minecraft.
 
-Unfortunately, MCfunction is verbose: It requires many lines just to do something simple things, kind of like Assembly languages.
+Your work process will become simpler, faster and less error-prone.
+This is partly because Bell is compiled[^1], which means it can catch common errors at compile-time and not at run-time,
+and partly because Bell is very different to MCfunction.
 
-So just as most modern software is built using high-level programming languages, I believe it's time we go beyond MCfunction.
+Whilst Bell's program/module model is based on top-level declarations and files,
+MCfunction's model is based on "commands" (instructions) and "functions" (procedures).
 
-# Introducing Bell!
-Bell is a programming language that is readable, expressive and concise.
-Additionaly, it's compiler is fast and error tolerant.
-
-Bell offers features many advanced features not seen in MCfunction. Such features include:
-* Expression oriented constructs
-* Conditionals
-* Parameterized functions
-* Structures (Classes)
-* Loops
-* Type inference
-* Strings[^1]
-
-[^1]: Strings are compile time values, so they don't offer all of the flexibility of values like integers for example.
+MCfunction's programming model is a bit confusing both for programming beginners and experts.
+The "functions" in MCfunction don't actually take any parameters or return anything (which is generally not the common defintion of a function).
+Furthermore, the commands in MCfunction are very verbose and a lot of them are needed for otherwise simple things.
 
 # A taste of Bell
-Heres example of Bell's high-level features. The following a MCfunction program prints 10 factorial:
+So far we have only talked about Bell code, but we think it's time you see some Bell code.
 
-> at `program:init`
-> ```mcfunction
-> scoreboard objectives add variables dummy
-> ```
->
-> at `program:main`
-> ```mcfunction
-> scoreboard players set current variables 10
-> scoreboard players set product variables 1
-> function program:main_calc
-> tellraw @a {"score": {"name": "product", "objective": "variables"}}
-> ```
->
-> at `program:main_calc`
-> ```mcfunction
-> scoreboard players operation product variables *= current variables
-> scoreboard players remove current variables 1
-> execute if score current variables matches 2.. run function program:main_calc
-> ```
+The following program implements fixed point numbers.
+```rust
+use std::math
+use std::check
 
-Heres it's equivalent Bell program:
-> ```go
-> func factorial(number) {
->    var product = 1;
->     
->    loop {
->        if number == 0 {
->            break product
->        }
-> 
->        product *= number;
->        number -= 1;
->    }
-> }
-> 
-> func main() {
->    println(factorial(10))
-> }
->```
-
-As previously mentioned, Bell can also do other interesting things, like creating structures.
-```go
-struct Car {
-    name,
-    color,
-    kph
+struct Fixed {
+    number: Int,
+    div: Int
 }
 
-func main() {
-    var my_car = Car {
-        name: "Cary McCarface",
-        color: "Red",
-        kph: 123
-    };
-    
-    my_car.color = "Blue"
-    println("My car's color is now {my_car.color}")
-}
-```
+extend Fixed {
+    func new(digits, point_loc) {
+        Fixed {
+            number: digits,
+            div: point_loc
+        }
+    }
 
-Bell also supports basic interoperability with MCfunction using the `mcfunction` function:
-```go
-func main() {
-    mcfunction("say Hello from Minecraft!")
-}
-```
+    // Sets the divisor without changing the overall value
+    func with_div(self: &Fixed, div: Int) {
+        self.number *= math::pow(10, div - self.div);
+        self.div = div;
+    }
 
-# Getting started
-Currently, the only way to run Bell is by building it from source. Make sure you have the Rust and Cargo installed.
+    // Executes an integer binary operation on two fixed-point numbers.
+    func exec_op(self, other, op: func(int, int) -> int) {
+        var max_div = math::max(self.div, other.div);
+        self.with_divisor(max_div);
+        other.with_divisor(max_div);
+        
+        self.number = op(self.number, other.number);
+        self
+    }
 
-Then, to build Bell you can just run this command (inside the installed directory):
-```bash
-cargo build --release
-```
+    func add(self, other) {
+        self.exec_op(other, func(a, b) a + b)
+    }
 
-an executable should now be seen inside the `target` directory. Now run it with the `--help` argument, and start writing code! 
+    func sub(self, other) {
+        self.exec_op(other, func(a, b) a - b)
+    }
 
-# Contributing
-For minor fixes, feel free to open a pull request. For more major ones, please open an issue first to explain what you would like to change.
+    func mul(self, other) {
+        self.exec_op(other, func(a, b) a * b)
+    }
 
-# Known bugs
-A branch in one conditional can currently effect others. For example:
-```go
-func main() {
-    var x = 0;
-    
-    if x == 0 {
-        x += 1;
-    } else if x == 1 {
-        println(x); // This prints! >:(
+    func div(self, other) {
+        self.exec_op(other, func(a, b) a / b)
     }
 }
+
+func main() {
+    var a = Fixed::new(1, 0); // This equals 1.0.
+    var b = Fixed::new(15, 1); // This equals 1.5.
+
+    check::assert(a.add(b) == Fixed::new(25, 1)); // Their sum equals 2.5.
+}
 ```
 
-The fix to this will drop when the new `v2` version of Bell is finished.
+# Great, how do I get started?
+Bell is currently in the middle of a refactor, you cannot use it at the moment
+That said, progress is being made!
+
+## The Roadmap
+The current roadmap looks like this:
+- [x] Front end
+  - [x] Internal file tree creation
+  - [x] Lexing
+  - [x] Parsing
+  - [x] Internal module tree creation
+- [ ] Middle end
+  - [x] HIR lowering
+  - [ ] Type checking
+    - [x] Type gathering
+    - [ ] Type checking
+  - [ ] MIR lowering
+  - [ ] IR optimization
+  - [ ] LIR lowering
+  - [ ] Peep-hole optimization
+- [ ] Backend
+  - [ ] VDP (Virtual Data pack) lowering
+  - [ ] Assembling 
+
+[^1] That doesn't distinguish Bell from other languages with the same purpose though, as all of them must compile to MCfunction.
+That said, they each offer you a varying level of error detection.
