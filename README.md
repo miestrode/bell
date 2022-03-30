@@ -9,8 +9,6 @@
 
 ---
 
-*If you are looking for a page explaining the motivation behind this project, please go to [this](/WHY.md) page.*
-
 # Hello, Bell!
 Bell is a programming language that compiles down to datapacks (MCfunction).
 It offers a rich user experience which is supported by it's advanced and user-friendly compiler, and it's high level features.
