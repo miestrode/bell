@@ -19,7 +19,7 @@ It offers a rich user experience which is supported by it's advanced and user-fr
 By using Bell, you will be able to productively create programs that run in Minecraft.
 
 Your work process will become simpler, faster and less error-prone.
-This is partly because Bell is compiled[^1], which means it can catch common errors at compile-time and not at run-time,
+This is partly because Bell is compiled, which means it can catch common errors at compile-time and not at run-time,
 and partly because Bell is very different to MCfunction.
 
 Whilst Bell's program/module model is based on top-level declarations and files,
@@ -113,7 +113,4 @@ The current roadmap looks like this:
   - [ ] Peep-hole optimization
 - [ ] Backend
   - [ ] VDP (Virtual Data pack) lowering
-  - [ ] Assembling 
-
-[^1] That doesn't distinguish Bell from other languages with the same purpose though, as all of them must compile to MCfunction.
-That said, they each offer you a varying level of error detection.
+  - [ ] Assembling
